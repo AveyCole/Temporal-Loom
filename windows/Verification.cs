@@ -18,14 +18,26 @@ namespace TemporalLoom
                 {
                     await Until(core, "typeof scrambleInstrument==='function' && typeof loadFragment==='function'", 12);
                     log.WriteLine("Shared interface loaded");
+                    await CheckDeck(core, app, target);
+                    log.WriteLine("Deck shuffle, mouse drag and keyboard reorder preserved active playback. Video frames changed with classic and organic rendering and resumed after Freeze.");
+                    if (Array.IndexOf(args, "--deck-only") >= 0)
+                    {
+                        log.WriteLine("PASS");
+                        app.Close();
+                        return;
+                    }
                     await CheckType(core);
                     log.WriteLine("All bundled fonts loaded offline. Font browsing, import, editing and session round-trip passed");
                     await CheckMediaModes(core, app, target);
                     log.WriteLine("Photo, video and mixed searches filter before loading and preserve the selection in old and new sessions");
+                    await CheckProgressiveSearch(core);
+                    log.WriteLine("Fast providers and individual fragments appeared before slow requests. Cancel kept the ready deck.");
                     await CheckAbstractSearch(core, app, target);
                     log.WriteLine("Abstract search used bundled related terms after the exact search and stopped at the target");
                     await CheckRecordTriggers(core, app, target);
                     log.WriteLine("Immediate silent MP4, arm cancellation and mic trigger passed");
+                    await CheckVideoAudio(core, app, target);
+                    log.WriteLine("Direct and converted video soundtracks drove the analyzer and the converted track was recorded");
                     await CheckDetachedDisplay(core, app, target);
                     log.WriteLine("Detached display and controls work on separate monitors, with independent fullscreen, MP4 capture and reattachment");
                     await CheckNewEffects(core);
@@ -40,8 +52,6 @@ namespace TemporalLoom
                     await CheckRemoteVideo(core);
                     log.WriteLine("Videos mode searched Internet Archive and played a moving fragment");
                     await CheckCatalogs(core, log);
-                    await CheckVideoAudio(core, app, target);
-                    log.WriteLine("An MP4's audio drove the visual analyzer, and the previous file resumed after switching back");
                     await CheckSliders(core);
                     log.WriteLine("Desktop sliders responded to mouse and keyboard, and effect tabs still switch");
                     await CheckLargeDeck(core);
@@ -94,6 +104,60 @@ namespace TemporalLoom
                 if (!passed) log.WriteLine(await core.ExecuteScriptAsync("JSON.stringify({status:$('status').textContent,clip:$('clipStatus').textContent,sources:assets.map(x=>x.source)})"));
                 app.Close();
             }
+        }
+        private static async Task CheckDeck(CoreWebView2 core, LoomWindow app, string target)
+        {
+            var media = app.Sources.ReadFolder(Path.Combine(target, "media"));
+            await core.ExecuteScriptAsync(@"
+                const qaDeckItems=" + LoomWindow.Json(media) + @";
+                const qaDeckStill=qaDeckItems.find(item=>item.kind==='image');
+                const qaDeckClip=qaDeckItems.find(item=>item.kind==='video');
+                loadImages([qaDeckStill,{...qaDeckStill,title:'Second still'},qaDeckClip],++searchToken)
+                  .then(result=>{assets=result.loaded;showAssets();});
+                window.qaStageFrame=()=>{
+                  const sample=document.createElement('canvas');sample.width=24;sample.height=16;
+                  sample.getContext('2d').drawImage(canvas,0,0,24,16);return sample.toDataURL();
+                };
+            ");
+            await Until(core, "assets.length===3&&!$('shuffleDeck').disabled&&document.querySelectorAll('.deck-handle').length===3", 8);
+            await core.ExecuteScriptAsync(@"
+                $('defaultFx').click();
+                window.qaVideoCard=assets[2];window.qaStillCard=assets[0];
+                document.querySelectorAll('.deck-cell .asset')[2].click();manual=true;
+            ");
+            await Until(core, "assets[a]===qaVideoCard && fragmentFrame(qaVideoCard).tagName==='VIDEO' && videoPlayers.get(qaVideoCard).currentTime>.05", 6);
+            await core.ExecuteScriptAsync("window.qaBefore=qaStageFrame();window.qaVideoPlayer=videoPlayers.get(qaVideoCard)");
+            await Until(core, "qaStageFrame()!==qaBefore", 4);
+            await core.ExecuteScriptAsync("$('effect').value=organicStyles[0];$('warp').value=0");
+            await Task.Delay(250);
+            await core.ExecuteScriptAsync("qaBefore=qaStageFrame()");
+            await Until(core, "qaStageFrame()!==qaBefore", 4);
+            await core.ExecuteScriptAsync("$('freeze').click()");
+            await Until(core, "qaVideoPlayer.paused && videoPlayers.get(qaVideoCard)===qaVideoPlayer", 4);
+            await core.ExecuteScriptAsync(@"
+                $('freeze').click();window.qaDeckBefore=assets.slice();
+                window.qaBlend=[assets[a],assets[b],morph];$('shuffleDeck').click();
+            ");
+            const string samePlayback = "assets[a]===qaBlend[0]&&assets[b]===qaBlend[1]&&morph===qaBlend[2]&&videoPlayers.get(qaVideoCard)===qaVideoPlayer&&!qaVideoPlayer.paused";
+            await Until(core, samePlayback + "&&assets.some((item,i)=>item!==qaDeckBefore[i])&&qaDeckBefore.every(item=>assets.includes(item))", 4);
+            await core.ExecuteScriptAsync("window.qaDragged=assets[0];deckStrip.scrollIntoView({block:'center'});deckStrip.scrollLeft=0");
+            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+            string rectangle = await core.ExecuteScriptAsync(@"(()=>{
+                const handle=deckStrip.children[0].querySelector('.deck-handle').getBoundingClientRect();
+                const last=deckStrip.children[2].getBoundingClientRect();
+                return [handle.left+handle.width/2,handle.top+handle.height/2,last.right-12,last.top+last.height/2];
+            })()");
+            var points = serializer.Deserialize<double[]>(rectangle);
+            await core.CallDevToolsProtocolMethodAsync("Input.dispatchMouseEvent", LoomWindow.Json(new { type = "mousePressed", x = points[0], y = points[1], button = "left", buttons = 1, clickCount = 1 }));
+            await core.CallDevToolsProtocolMethodAsync("Input.dispatchMouseEvent", LoomWindow.Json(new { type = "mouseMoved", x = points[2], y = points[3], button = "left", buttons = 1 }));
+            await Until(core, "deckStrip.children[2].dataset.drop==='after'", 3);
+            await core.CallDevToolsProtocolMethodAsync("Input.dispatchMouseEvent", LoomWindow.Json(new { type = "mouseReleased", x = points[2], y = points[3], button = "left", clickCount = 1 }));
+            await Until(core, samePlayback + "&&assets[2]===qaDragged&&deckStrip.children[2].querySelector('img').alt===qaDragged.title", 4);
+            await core.ExecuteScriptAsync("deckStrip.children[2].querySelector('.deck-handle').focus()");
+            await core.CallDevToolsProtocolMethodAsync("Input.dispatchKeyEvent", LoomWindow.Json(new { type = "keyDown", key = "ArrowLeft", code = "ArrowLeft", windowsVirtualKeyCode = 37 }));
+            await core.CallDevToolsProtocolMethodAsync("Input.dispatchKeyEvent", LoomWindow.Json(new { type = "keyUp", key = "ArrowLeft", code = "ArrowLeft", windowsVirtualKeyCode = 37 }));
+            await Until(core, samePlayback + "&&assets[1]===qaDragged&&!deckDrag", 4);
+            await core.ExecuteScriptAsync("assets=[];showAssets();applyLook(false);window.scrollTo(0,0)");
         }
         private static async Task CheckType(CoreWebView2 core)
         {
@@ -181,7 +245,7 @@ namespace TemporalLoom
             {
                 await core.ExecuteScriptAsync("assets=[];showAssets();setMediaMode(" + LoomWindow.Json(mode) + ");$('excavate').click()");
                 string condition = mode == "both"
-                    ? "assets.length===2 && assets[0].kind==='image' && assets[1].kind==='video'"
+                    ? "assets.length===2 && assets.some(item=>item.kind==='image') && assets.some(item=>item.kind==='video')"
                     : "assets.length===1 && assets[0].kind==='" + (mode == "videos" ? "video" : "image") + "'";
                 await Until(core, "!$('excavate').disabled && " + condition, 10);
             }
@@ -202,6 +266,32 @@ namespace TemporalLoom
             ");
             await Until(core, "qaMediaSettings", 8);
             await core.ExecuteScriptAsync("setMediaMode('photos');$('source').value='blended';$('source').onchange();setFragmentRange(DEFAULT_FRAGMENT_RANGE)");
+        }
+        private static async Task CheckProgressiveSearch(CoreWebView2 core)
+        {
+            await core.ExecuteScriptAsync(@"
+                const qaRealPages=searchAllPages,qaRealLoad=loadFragment;
+                let qaFinishProvider,qaFinishFragment;
+                const qaProviderGate=new Promise(resolve=>qaFinishProvider=resolve);
+                const qaFragmentGate=new Promise(resolve=>qaFinishFragment=resolve);
+                const qaReleased=[];
+                const qaItems=[0,1,2].map(index=>({title:'Progress '+index,kind:'image',source:'Local file',
+                    date:'fixture',image:demo(index).toDataURL(),onRelease:()=>qaReleased.push(index)}));
+                async function* qaFastProvider(){yield {items:qaItems.slice(0,1)};}
+                async function* qaSlowProvider(){await qaProviderGate;yield {items:qaItems.slice(1)};}
+                searchAllPages=()=>mergeSearchPages([qaFastProvider(),qaSlowProvider()]);
+                loadFragment=async item=>{
+                    if(item===qaItems[1])await qaFragmentGate;
+                    return qaRealLoad(item);
+                };
+                setMediaMode('photos');setFragmentRange({min:3,max:3});$('excavate').click();
+            ");
+            await Until(core, "$('excavate').disabled && assets.length===1 && assets[0].title==='Progress 0' && document.querySelectorAll('.deck-cell').length===1", 8);
+            await core.ExecuteScriptAsync("const qaFirstCell=$('assets').firstChild;qaFinishProvider()");
+            await Until(core, "$('excavate').disabled && assets.length===2 && assets[1].title==='Progress 2' && $('assets').firstChild===qaFirstCell", 8);
+            await core.ExecuteScriptAsync("$('cancelFind').click();qaFinishFragment()");
+            await Until(core, "!$('excavate').disabled && assets.length===2 && qaReleased.includes(1) && !qaReleased.includes(0) && !qaReleased.includes(2)", 8);
+            await core.ExecuteScriptAsync("searchAllPages=qaRealPages;loadFragment=qaRealLoad;assets=[];showAssets();setFragmentRange(DEFAULT_FRAGMENT_RANGE)");
         }
         private static async Task CheckNewEffects(CoreWebView2 core)
         {
@@ -368,13 +458,35 @@ namespace TemporalLoom
             await Until(core,"!fileAudio.paused && fileAudio.currentTime>0 && readDriver('audio',.016).level>.02 && !$('restoreFragmentAudio').hidden && fileAudio.getAttribute('src')!==qaPreviousAudio",10);
             await core.ExecuteScriptAsync("$('restoreFragmentAudio').click()");
             await Until(core,"fileAudio.getAttribute('src')===qaPreviousAudio && !fileAudio.paused && $('audioName').textContent==='Previously loaded WAV' && $('restoreFragmentAudio').hidden",8);
+            await core.ExecuteScriptAsync(@"
+                const qaRealTrackCheck=hasVideoSoundtrack;
+                hasVideoSoundtrack=()=>!fileAudio.getAttribute('src')?.startsWith('/folder/')&&qaRealTrackCheck();
+                document.querySelector('.use-fragment-audio').click();
+            ");
+            await Until(core, "fileAudio.getAttribute('src')?.startsWith('/decoded-audio/') && !fileAudio.paused && readDriver('audio',.016).level>.02", 15);
+            app.SetTestClip(Path.Combine(target, "decoded-video-audio.mp4"));
+            await core.ExecuteScriptAsync("$('recordClip').click()");
+            await Until(core, "clipRecorder?.state==='recording'", 8);
+            await Task.Delay(1300);
+            await core.ExecuteScriptAsync("$('recordClip').click()");
+            await Until(core, "$('clipStatus').textContent==='Clip saved.'", 30);
+            await core.ExecuteScriptAsync("hasVideoSoundtrack=qaRealTrackCheck;$('restoreFragmentAudio').click()");
+            await Until(core, "fileAudio.getAttribute('src')===qaPreviousAudio && !fileAudio.paused", 8);
             await core.ExecuteScriptAsync("$('stopFile').click();assignAudioMedia(null)");
         }
         private static async Task CheckAsio(CoreWebView2 core, StreamWriter log)
         {
-            var values = new float[] { 0, .05f, 0, .05f };
-            if (AsioInput.ChannelLevel(values, 2, 2, 0) != 0 || AsioInput.ChannelLevel(values, 2, 2, 1) < .46)
-                throw new Exception("ASIO level crossed channel boundaries.");
+            var samples = Marshal.AllocHGlobal(8);
+            try
+            {
+                Marshal.Copy(new[] { .05f, -.05f }, 0, samples, 2);
+                if (Math.Abs(AsioInput.BufferLevel(samples, 2, NAudio.Wave.Asio.AsioSampleType.Float32LSB) - .468) > .001)
+                    throw new Exception("ASIO float meter returned the wrong level.");
+                Marshal.Copy(new byte[] { 0, 0, 8, 0, 0, 248 }, 0, samples, 6);
+                if (Math.Abs(AsioInput.BufferLevel(samples, 2, NAudio.Wave.Asio.AsioSampleType.Int24LSB) - .585) > .001)
+                    throw new Exception("ASIO 24-bit meter did not sign-extend the samples.");
+            }
+            finally { Marshal.FreeHGlobal(samples); }
             long second = System.Diagnostics.Stopwatch.Frequency;
             if (AsioInput.BuffersStalled(3 * second, second, 0) ||
                 !AsioInput.BuffersStalled(5 * second, second, 0) ||

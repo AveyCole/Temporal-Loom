@@ -29,7 +29,7 @@ const result=sliderPage
   .replace('hidden>Share clip</button>', 'hidden>Show saved clip</button>')
   .replace('<button id="cancelFind"','<button type="button" id="captureWindow">Capture window</button><button type="button" id="openYouTube">Open YouTube</button><button id="cancelFind"')
   .replace('initFragmentRange();initLooks();',match=>windowCapture+'\n'+match)
-  .replace('<span id="topMic"></span>', '<label class="mic-device">Mic input <select id="micDevice"><option value="">System default</option></select></label><label class="mic-channel" id="micChannelField" hidden>Input channel <select id="micChannel"></select><meter id="micSignal" min="0" max="1" aria-label="Selected input level"></meter></label><span id="topMic"></span>')
+  .replace('<span id="topMic"></span>', '<label class="mic-device">Mic input <select id="micDevice"><option value="">System default</option></select></label><div class="mic-channel" id="micChannelField" hidden><label for="micChannel">Input channel</label><select id="micChannel"></select><meter id="micSignal" min="0" max="1" aria-label="Selected input level"></meter><button type="button" id="asioSettings">ASIO settings</button></div><span id="topMic"></span>')
   .replace('<small>Hold a knob, then drag.</small>','')
   .replace("$('weights').append(label);}",`const output=document.createElement('output');output.textContent=input.value;label.insertBefore(output,input);input.addEventListener('input',()=>output.textContent=input.value);$('weights').append(label);}`)
   .replace("for(const k of types)$(k).value=data.mix?.[k]??50;",`for(const k of types){$(k).value=data.mix?.[k]??50;$(k).dispatchEvent(new Event('input'));}`)
@@ -38,7 +38,7 @@ const result=sliderPage
     .stage-detached #stageWrap{display:none}
     .mode-tabs{flex-wrap:wrap}.mode-tabs .mic-device{display:flex;align-items:center;gap:6px;margin:0 0 0 auto;font-size:12px}
     .mode-tabs .mic-device select{width:auto;max-width:225px;margin:0}.mode-tabs #topMic{margin-left:0}
-    .mic-channel{display:flex;align-items:center;gap:6px;margin:0;font-size:12px}.mic-channel[hidden]{display:none}.mic-channel select{width:auto;max-width:190px;margin:0}.mic-channel meter{width:52px;height:10px}
+    .mic-channel{display:flex;align-items:center;gap:6px;margin:0;font-size:12px}.mic-channel[hidden]{display:none}.mic-channel label{margin:0}.mic-channel select{width:auto;max-width:190px;margin:0}.mic-channel meter{width:52px;height:10px}
     input[type=range]{display:block;height:24px;margin:3px 0 0;cursor:ew-resize}
     input[type=range]:focus-visible{outline:2px solid var(--acid);outline-offset:1px}
     #weights{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}

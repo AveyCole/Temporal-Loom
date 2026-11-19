@@ -147,7 +147,7 @@ html=html.replace('let clipAudio,audioContext','let clipAudio,audioMonitor,fileS
  .replace("const source=audioContext.createMediaElementSource($('audio'));source.connect(analyser);analyser.connect(audioContext.destination);", "fileSource=audioContext.createMediaElementSource($('audio'));audioMonitor=audioContext.createGain();analyser.connect(audioMonitor);audioMonitor.connect(audioContext.destination);updateAudioGraph();")
  .replace('<input id="audioFile" type="file" accept="audio/*">','<input id="audioFile" type="file" accept="audio/*,video/*">')
  .replace('Load an audio file','Load audio or video sound')
- .replace("$('audio').src=audioURL;","discardFragmentAudio();assignAudioMedia(audioURL);")
+ .replace("$('audio').src=audioURL;","discardFragmentAudio();rememberAudioFile(file);assignAudioMedia(audioURL);")
  .replace('<button type="button" id="stopFile" disabled>Stop</button>', '<button type="button" id="stopFile" disabled>Stop</button><button type="button" id="restoreFragmentAudio" hidden>Restore previous audio</button>')
  .replace('cell.append(button,del);',`cell.append(button,del);
    if(asset.kind==='video'){
@@ -163,7 +163,7 @@ html=html.replace('<span id="topMic"></span>','<button type="button" id="typeTab
  .replace('initMediaMode();initFragmentRange();',match=>fs.readFileSync('type-fragments.js','utf8')+'\ninitType();'+match)
  .replace('const session={mediaMode:', 'const session={typeFonts:exportTypeFonts(),mediaMode:')
  .replace('({title,date,source,link,image,kind})=>({title,date,source,link,image,kind})',
-   '({title,date,source,link,image,kind,typeSpec})=>kind==="type"?{title,date,source,kind,typeSpec}:{title,date,source,link,image,kind}')
+   '({title,date,source,link,image,audio,kind,typeSpec})=>kind==="type"?{title,date,source,kind,typeSpec}:{title,date,source,link,image,audio,kind}')
  .replace('if(validVideoReference(item)||','if(validTypeReference(item)||validVideoReference(item)||')
  .replace('if(data.mediaMode||typeof data.videoMode==="boolean")','await restoreTypeFonts(data.typeFonts);if(data.mediaMode||typeof data.videoMode==="boolean")')
  .replace('cell.append(button,del);',`cell.append(button,del);
@@ -171,7 +171,20 @@ html=html.replace('<span id="topMic"></span>','<button type="button" id="typeTab
      const edit=document.createElement('button');edit.type='button';edit.className='use-fragment-audio';edit.textContent='Edit type';
      edit.setAttribute('aria-label','Edit type '+asset.title);edit.onclick=()=>editTypeFragment(asset);cell.append(edit);
    }`)
- .replace("'ARCHIVED MATERIAL';a=0;", "(assets.length&&assets.every(x=>x.kind==='type')?'CUSTOM TYPE':'ARCHIVED MATERIAL');a=0;");
+ .replace("$('stageOrigin').textContent=assets.some(", "$('stageOrigin').textContent=vf.active&&vf.pair?'VIEWFINDER':assets.some(")
+ .replace("'ARCHIVED MATERIAL';if(!preserveStage", "(assets.length&&assets.every(x=>x.kind==='type')?'CUSTOM TYPE':'ARCHIVED MATERIAL');if(!preserveStage");
+html=html.replace('<div class="eyebrow">FRAGMENT DECK</div>',
+   '<div class="deck-heading"><div class="eyebrow">FRAGMENT DECK</div><button type="button" id="shuffleDeck" disabled>Shuffle deck</button></div>')
+ .replace("button.onclick=()=>choose(index);const cell=", "button.onclick=()=>selectDeckFragment(index);const cell=")
+ .replace("$('assets').append(cell);const source=", "cell.prepend(deckHandle(asset,cell));$('assets').append(cell);const source=")
+ .replace('initMediaMode();initFragmentRange();',match=>fs.readFileSync('fragment-deck.js','utf8')+'\n'+match)
+ .replace('</style>',`\n.deck-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.deck-heading button:disabled{opacity:.45;cursor:default}
+.deck-handle{position:absolute;z-index:1;top:0;left:0;width:34px;height:34px;padding:0;background:#101817df;color:var(--text);font-size:20px;cursor:grab;touch-action:none;user-select:none}
+.deck-dragging{opacity:.55}.deck-dragging .deck-handle{cursor:grabbing}
+.deck-cell[data-drop]::after{content:'';position:absolute;background:var(--acid);width:3px;top:0;bottom:0;pointer-events:none}
+.deck-cell[data-drop="before"]::after{left:0}.deck-cell[data-drop="after"]::after{right:0}
+</style>`);
 fs.writeFileSync('assets/index.html',html);
 fs.copyFileSync('archive-pages.js','assets/archive.js');
 fs.mkdirSync('res/drawable-nodpi',{recursive:true});

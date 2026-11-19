@@ -29,9 +29,8 @@ async function gatherDirect(){
    }
    items=items.filter(item=>mediaMatches(item,media));
    if(!items.length)throw Error('No compatible '+mediaModes[media]+' found.');
-   const result=await collectFragments([{items:mixMedia(items)}],token,target,media);
+   const result=await collectFragments([{items:mixMedia(items)}],token,target,media,progressiveDeck());
    if(!result||token!==searchToken)return;
-   if(result.loaded.length){assets=mergeTypeWithMedia(result.loaded);showAssets();}
    report(fragmentResultText(result.loaded.length,target,result.issue));
  }catch(e){if(token===searchToken)report(e.message);}
  finally{if(token===searchToken)$('excavate').disabled=false;}

@@ -33,10 +33,10 @@ class ArchiveClient extends WebViewClient {
             }
             if(path.startsWith("/google-thumb/"))return activity.google.thumbnail(path.substring("/google-thumb/".length()));
             if(path.startsWith("/folder/"))return FolderMedia.open(activity.getContentResolver(),activity.sources.files.get(path),activity.sources.fileTypes.get(path),req.getRequestHeaders().get("Range"));
-            if(path.equals("/web-video")){
+            if(path.equals("/web-video")||path.equals("/web-audio")){
                 String range=null;
                 for(Map.Entry<String,String> header:req.getRequestHeaders().entrySet())if(header.getKey().equalsIgnoreCase("Range"))range=header.getValue();
-                return RemoteVideo.open(u.getQueryParameter("url"),range);
+                return RemoteVideo.open(u.getQueryParameter("url"),range,path.equals("/web-audio"));
             }
             if(path.equals("/website")||path.equals("/web-image")){
                 String media=u.getQueryParameter("media");

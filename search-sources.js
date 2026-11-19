@@ -63,28 +63,43 @@ function searchAllPages(query){
  if(!['google','wikipedia','nasa','peertube','commons-video','ia-video'].includes(source))streams.push(archivePages(query));
  return mergeSearchPages(streams);
 }
-function mixMedia(items){
+function mixMedia(items,videoFirst=false){
  const photos=[],videos=[];
  for(const item of items)(item.kind==='video'?videos:photos).push(item);
- const mixed=[];
- for(let n=0;n<Math.max(photos.length,videos.length);n++){
-   if(photos[n])mixed.push(photos[n]);
-   if(videos[n])mixed.push(videos[n]);
- }
+ const mixed=[],groups=videoFirst?[videos,photos]:[photos,videos];
+ for(let n=0;n<Math.max(photos.length,videos.length);n++)for(const group of groups)if(group[n])mixed.push(group[n]);
  return mixed;
 }
 async function* mergeSearchPages(streams){
+ let previewed=false,videoFirst=false;
  while(streams.length){
-   const batches=await Promise.allSettled(streams.map(stream=>stream.next()));
+   const reads=streams.map(stream=>stream.next());
+   const settled=Promise.allSettled(reads);
+   let preview;
+   if(!previewed&&reads.length>1){
+     preview=await Promise.any(reads.map(async read=>{
+       const {value}=await read;
+       if(value?.items.length)return value;
+       throw Error('No candidates in this page.');
+     })).catch(()=>null);
+     if(preview){
+       previewed=true;
+       videoFirst=preview.items[0].kind!=='video';
+       yield {items:[preview.items[0]],dates:preview.dates};
+     }
+   }
+   const batches=await settled;
    const groups=[],issues=[];let dates;
    for(let i=batches.length-1;i>=0;i--){
      const row=batches[i];
      if(row.status==='rejected'){issues.push(row.reason.message);streams.splice(i,1);continue;}
      if(row.value.done){streams.splice(i,1);continue;}
-     const page=row.value.value;groups.unshift(page.items);if(page.issue)issues.push(page.issue);if(page.dates)dates=page.dates;
+     const page=row.value.value;groups.unshift(page===preview?page.items.slice(1):page.items);if(page.issue)issues.push(page.issue);if(page.dates)dates=page.dates;
    }
    const items=[];for(let n=0;groups.some(group=>group.length>n);n++)for(const group of groups)if(group[n])items.push(group[n]);
-   yield {items:mixMedia(items),issue:issues.join(' '),dates};
+   const mixed=mixMedia(items,videoFirst);
+   if(mixed.length)videoFirst=mixed.at(-1).kind!=='video';
+   yield {items:mixed,issue:issues.join(' '),dates};
  }
 }
 function validSearchReference(item){

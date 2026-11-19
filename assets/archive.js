@@ -111,17 +111,31 @@ async function* pages(params){
    for(const site of sites)addWayback(site,1/sites.length);
  }
  const dates=dateWindow(params.get('date'),params.get('window'));
+ let previewed=false;
  while(sources.some(s=>s.more||s.items.length)){
    const pending=sources.filter(s=>s.more&&!s.items.length);
    let issue='';
-   await Promise.all(pending.map(async s=>{
+   const reads=pending.map(async s=>{
      try{
        const batch=await searchSource(s.query,++s.page);
        const fingerprint=batch.assets.map(a=>a.image).join('\n');
        if(fingerprint&&s.previous===fingerprint){s.more=false;return;}
        s.previous=fingerprint;s.more=batch.more;s.items=batch.assets;
      }catch(e){s.more=false;issue=e.message||'A source could not be reached.';}
-   }));
+     return s;
+   });
+   if(!previewed&&reads.length>1){
+     const first=await Promise.any(reads.map(async read=>{
+       const source=await read;
+       if(source?.items.length)return source;
+       throw Error('No candidates in this page.');
+     })).catch(()=>null);
+     if(first){
+       previewed=true;first.offered++;
+       yield {items:[first.items.shift()],dates};
+     }
+   }
+   await Promise.all(reads);
    const items=[];
    while(items.length<24){
      const pool=sources.filter(s=>s.items.length||s.more).sort((a,b)=>(a.offered+.5)/a.weight-(b.offered+.5)/b.weight)[0];

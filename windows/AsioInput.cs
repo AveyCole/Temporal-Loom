@@ -1,8 +1,9 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
-using NAudio.Wave;
+using NAudio.Wave.Asio;
 
 namespace TemporalLoom
 {
@@ -16,6 +17,8 @@ namespace TemporalLoom
         private long publishedBuffer;
         private int recoveryAttempts;
         private string recoveryMessage;
+        private int leftChannel, rightChannel = -1;
+        private bool settingsOpen;
         private const int MaxRecoveryAttempts = 3;
 
         internal AsioInput(LoomWindow app)
@@ -27,7 +30,7 @@ namespace TemporalLoom
 
         internal void List()
         {
-            app.RunScript("Mic.asioDrivers(" + LoomWindow.Json(AsioOut.GetDriverNames()) + ")");
+            app.RunScript("Mic.asioDrivers(" + LoomWindow.Json(AsioDriver.GetAsioDriverNames()) + ")");
         }
 
         internal void Open(string driver)
@@ -51,40 +54,41 @@ namespace TemporalLoom
 
         private void StartCapture(bool recovered)
         {
-            if (!AsioOut.GetDriverNames().Contains(device))
+            if (!AsioDriver.GetAsioDriverNames().Contains(device))
                 throw new InvalidOperationException("The ASIO driver is unavailable.");
-            var input = new AsioOut(device);
+            capture = new Capture(AsioDriver.GetAsioDriverByName(device));
             try
             {
-                var next = new Capture(input);
-                var channels = ChannelLabels(device, next.Levels.Length, input.AsioInputChannelName);
+                capture.Start(app.Handle, leftChannel, rightChannel);
+                var channels = ChannelLabels(device, capture.ChannelCount, capture.ChannelName);
                 var stereo = StereoLabels(device, channels.Length);
-                capture = next;
                 publishedBuffer = 0;
-                next.Start();
                 string labels = LoomWindow.Json(channels) + ",null," + LoomWindow.Json(stereo);
                 if (recovered) recoveryMessage = "Mic.asioRecovered(" + labels + ")";
                 else app.RunScript("Mic.asioOpened(" + labels + ")");
             }
             catch
             {
-                // The capture owns the callbacks as soon as it is attached.
-                if (capture != null) CloseCapture();
-                else input.Dispose();
+                CloseCapture();
                 throw;
             }
         }
 
-        internal static double ChannelLevel(float[] buffer, int frames, int stride, int channel)
+        internal void SelectChannels(int left, int right)
         {
-            if (frames <= 0) return 0;
-            double square = 0;
-            for (int frame = 0, i = channel; frame < frames; frame++, i += stride)
+            if (capture != null && capture.SelectChannels(left, right))
             {
-                var sample = buffer[i];
-                if (!float.IsNaN(sample) && !float.IsInfinity(sample)) square += (double)sample * sample;
+                leftChannel = left;
+                rightChannel = right;
             }
-            return Math.Min(1, Math.Sqrt(square / frames) * 9.36);
+        }
+
+        internal void ShowSettings()
+        {
+            if (capture == null || settingsOpen) return;
+            settingsOpen = true;
+            try { capture.ShowSettings(); }
+            finally { settingsOpen = false; }
         }
 
         internal static string[] ChannelLabels(string driver, int count, Func<int, string> getName)
@@ -116,6 +120,7 @@ namespace TemporalLoom
 
         private void Publish()
         {
+            if (settingsOpen) return;
             long now = Stopwatch.GetTimestamp();
             if (capture == null)
             {
@@ -140,9 +145,7 @@ namespace TemporalLoom
             }
             if (last - capture.StartedAt >= 5 * Stopwatch.Frequency) recoveryAttempts = 0;
             publishedBuffer = last;
-            var snapshot = new double[capture.Levels.Length];
-            for (int i = 0; i < snapshot.Length; i++) snapshot[i] = Volatile.Read(ref capture.Levels[i]);
-            app.RunScript("Mic.asioLevels(" + LoomWindow.Json(snapshot) + ")");
+            app.RunScript("Mic.asioLevels(" + LoomWindow.Json(capture.ReadLevels()) + ")");
         }
 
         internal static bool BuffersStalled(long now, long startedAt, long lastBuffer)
@@ -181,6 +184,8 @@ namespace TemporalLoom
             meter.Stop();
             device = null;
             recoveryAttempts = 0;
+            leftChannel = 0;
+            rightChannel = -1;
             CloseCapture();
         }
 
@@ -188,65 +193,178 @@ namespace TemporalLoom
 
         private sealed class Capture : IDisposable
         {
-            private readonly AsioOut input;
-            private float[] samples = new float[0];
-            internal readonly double[] Levels;
+            private readonly AsioDriver input;
+            private AsioCallbacks callbacks;
+            private BufferInfo[] buffers;
+            private AsioChannelInfo[] channels;
+            private SelectedChannels selection;
+            private int frames;
+            private int reading;
+            private bool allocated, started;
             internal long StartedAt;
             internal long LastBuffer;
             internal string Error;
+            internal int ChannelCount { get { return channels.Length; } }
 
-            internal Capture(AsioOut input)
+            internal Capture(AsioDriver input) { this.input = input; }
+            internal string ChannelName(int channel) { return channels[channel].name; }
+            internal void ShowSettings() { input.ControlPanel(); }
+
+            internal unsafe void Start(IntPtr owner, int left, int right)
             {
-                this.input = input;
-                int count = input.DriverInputChannelCount;
+                if (!input.Init(owner)) throw new InvalidOperationException(input.GetErrorMessage());
+                int count, outputs, min, max, granularity;
+                input.GetChannels(out count, out outputs);
                 if (count == 0) throw new InvalidOperationException("This driver has no input channels.");
-                Levels = new double[count];
-            }
-
-            internal void Start()
-            {
-                int rate = input.IsSampleRateSupported(48000) ? 48000 : 44100;
-                input.AudioAvailable += Read;
-                input.DriverResetRequest += ResetRequested;
-                input.PlaybackStopped += PlaybackStopped;
-                input.InitRecordAndPlayback(null, Levels.Length, rate);
-                StartedAt = Stopwatch.GetTimestamp();
-                input.Play();
-            }
-
-            private void ResetRequested(object sender, EventArgs args)
-            {
-                Volatile.Write(ref Error, "The driver requested a reset.");
-            }
-
-            private void PlaybackStopped(object sender, StoppedEventArgs args)
-            {
-                Volatile.Write(ref Error, args.Exception == null ? "ASIO capture stopped." : args.Exception.Message);
-            }
-
-            private void Read(object sender, AsioAudioAvailableEventArgs args)
-            {
-                try
+                input.GetBufferSize(out min, out max, out frames, out granularity);
+                if (frames <= 0) throw new InvalidOperationException("The ASIO driver reported an invalid buffer size.");
+                channels = new AsioChannelInfo[count];
+                buffers = new BufferInfo[count];
+                for (int i = 0; i < count; i++)
                 {
-                    int count = args.InputBuffers.Length;
-                    int needed = count * args.SamplesPerBuffer;
-                    if (needed == 0) return;
-                    if (samples.Length < needed) samples = new float[needed];
-                    args.GetAsInterleavedSamples(samples);
-                    for (int channel = 0; channel < Math.Min(count, Levels.Length); channel++)
-                        Volatile.Write(ref Levels[channel], ChannelLevel(samples, args.SamplesPerBuffer, count, channel));
-                    Interlocked.Exchange(ref LastBuffer, Stopwatch.GetTimestamp());
+                    channels[i] = input.GetChannelInfo(i, true);
+                    buffers[i] = new BufferInfo { IsInput = 1, Channel = i };
                 }
-                catch (Exception ex) { Volatile.Write(ref Error, ex.Message); }
+                if (!SelectChannels(left, right)) SelectChannels(0, -1);
+                callbacks = new AsioCallbacks
+                {
+                    pbufferSwitch = Read,
+                    pbufferSwitchTimeInfo = ReadWithTime,
+                    pasioMessage = DriverMessage,
+                    psampleRateDidChange = rate => Volatile.Write(ref Error, "The driver sample rate changed.")
+                };
+                // Leave the device clock alone and create only input buffers.
+                fixed (BufferInfo* buffer = buffers)
+                    input.CreateBuffers((IntPtr)buffer, count, frames, ref callbacks);
+                allocated = true;
+                StartedAt = Stopwatch.GetTimestamp();
+                Volatile.Write(ref reading, 1);
+                started = true;
+                input.Start();
+            }
+
+            internal bool SelectChannels(int left, int right)
+            {
+                if (left < 0 || left >= ChannelCount || right < -1 || right >= ChannelCount || left == right) return false;
+                Volatile.Write(ref selection, new SelectedChannels(left, right));
+                return true;
+            }
+
+            internal double[] ReadLevels()
+            {
+                var current = Volatile.Read(ref selection);
+                var levels = new double[ChannelCount];
+                levels[current.Left] = Volatile.Read(ref current.LeftLevel);
+                if (current.Right >= 0) levels[current.Right] = Volatile.Read(ref current.RightLevel);
+                return levels;
+            }
+
+            private static bool SupportsMessage(AsioMessageSelector selector)
+            {
+                return selector == AsioMessageSelector.kAsioEngineVersion || selector == AsioMessageSelector.kAsioResetRequest ||
+                    selector == AsioMessageSelector.kAsioBufferSizeChange || selector == AsioMessageSelector.kAsioSupportsTimeInfo;
+            }
+
+            private int DriverMessage(AsioMessageSelector selector, int value, IntPtr message, IntPtr option)
+            {
+                switch (selector)
+                {
+                    case AsioMessageSelector.kAsioSelectorSupported: return SupportsMessage((AsioMessageSelector)value) ? 1 : 0;
+                    case AsioMessageSelector.kAsioEngineVersion: return 2;
+                    case AsioMessageSelector.kAsioSupportsTimeInfo: return 1;
+                    case AsioMessageSelector.kAsioResetRequest:
+                    case AsioMessageSelector.kAsioBufferSizeChange:
+                        Volatile.Write(ref Error, "The driver requested a reset.");
+                        return 1;
+                    default: return 0;
+                }
+            }
+
+            private IntPtr ReadWithTime(IntPtr time, int index, bool direct)
+            {
+                Read(index, direct);
+                return time;
+            }
+
+            private void Read(int index, bool direct)
+            {
+                if (Volatile.Read(ref reading) == 0 || (uint)index > 1) return;
+                var requested = Volatile.Read(ref selection);
+                Volatile.Write(ref requested.LeftLevel, Level(requested.Left, index));
+                if (requested.Right >= 0) Volatile.Write(ref requested.RightLevel, Level(requested.Right, index));
+                Interlocked.Exchange(ref LastBuffer, Stopwatch.GetTimestamp());
+            }
+
+            private double Level(int channel, int index)
+            {
+                var buffer = buffers[channel];
+                return BufferLevel(index == 0 ? buffer.First : buffer.Second, frames, channels[channel].type);
             }
 
             public void Dispose()
             {
-                input.AudioAvailable -= Read;
-                input.DriverResetRequest -= ResetRequested;
-                input.PlaybackStopped -= PlaybackStopped;
-                input.Dispose();
+                Volatile.Write(ref reading, 0);
+                try { if (started) input.Stop(); }
+                finally
+                {
+                    try { if (allocated) input.DisposeBuffers(); }
+                    finally { input.ReleaseComAsioDriver(); }
+                }
+                GC.KeepAlive(callbacks);
             }
+
+            private sealed class SelectedChannels
+            {
+                internal readonly int Left, Right;
+                internal double LeftLevel, RightLevel;
+
+                internal SelectedChannels(int left, int right) { Left = left; Right = right; }
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            private struct BufferInfo
+            {
+                internal int IsInput, Channel;
+                internal IntPtr First, Second;
+            }
+        }
+
+        internal static unsafe double BufferLevel(IntPtr buffer, int frames, AsioSampleType type)
+        {
+            if (buffer == IntPtr.Zero || frames <= 0) return 0;
+            double square = 0, fullScale = 1;
+            switch (type)
+            {
+                case AsioSampleType.Float32LSB:
+                    var floats = (float*)buffer;
+                    for (int i = 0; i < frames; i++)
+                    {
+                        float sample = floats[i];
+                        if (!float.IsNaN(sample) && !float.IsInfinity(sample)) square += (double)sample * sample;
+                    }
+                    break;
+                case AsioSampleType.Int16LSB:
+                    var shorts = (short*)buffer;
+                    for (int i = 0; i < frames; i++) square += (double)shorts[i] * shorts[i];
+                    fullScale = 32768;
+                    break;
+                case AsioSampleType.Int24LSB:
+                    var bytes = (byte*)buffer;
+                    for (int i = 0; i < frames; i++, bytes += 3)
+                    {
+                        int sample = bytes[0] | bytes[1] << 8 | (sbyte)bytes[2] << 16;
+                        square += (double)sample * sample;
+                    }
+                    fullScale = 8388608;
+                    break;
+                case AsioSampleType.Int32LSB:
+                    var integers = (int*)buffer;
+                    for (int i = 0; i < frames; i++) square += (double)integers[i] * integers[i];
+                    fullScale = 2147483648;
+                    break;
+                default: return 0;
+            }
+            return Math.Min(1, Math.Sqrt(square / frames) * 9.36 / fullScale);
         }
     }
 }

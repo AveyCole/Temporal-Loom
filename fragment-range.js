@@ -23,9 +23,36 @@ function fragmentResultText(count,target,issue){
  const reason=issue?'Search interrupted. '+issue:'No more usable candidates were returned.';
  return 'Found '+count+' of '+target+' fragments. '+reason;
 }
-async function collectFragments(pages,token,target,media='both'){
+function progressiveDeck(onFirst){
+ let started=false;
+ return asset=>{
+   if(!started){
+     if(typeCount()>=MAX_FRAGMENTS)return false;
+     assets=mergeTypeWithMedia([asset]);
+     showAssets();
+     started=true;
+     onFirst?.();
+   }else{
+     if(assets.length>=MAX_FRAGMENTS)return false;
+     const start=assets.length;
+     assets.push(asset);
+     showAssets(start);
+   }
+   return true;
+ };
+}
+async function collectFragments(pages,token,target,media='both',publish){
  const loaded=[],seen=new Set();let failures=0,issue='';
- const cancelled=()=>{for(const asset of loaded)releaseFragment(asset);return null;};
+ const cancelled=()=>{if(!publish)for(const asset of loaded)releaseFragment(asset);return null;};
+ const progress=()=>{
+   const status='Searching · '+loaded.length+' / '+target+' usable fragments';
+   report(status);if(vf.active)$('pairStatus').textContent=status;
+ };
+ const onLoaded=publish?asset=>{
+   if(!publish(asset))return false;
+   loaded.push(asset);progress();
+   return true;
+ }:null;
  try{
    for await(const page of pages){
      if(token!==searchToken)return cancelled();
@@ -39,12 +66,13 @@ async function collectFragments(pages,token,target,media='both'){
      });
      for(let cursor=0;cursor<items.length;){
        const batch=items.slice(cursor,cursor+Math.min(8,target-loaded.length));cursor+=batch.length;
-       const result=await loadImages(batch,token);
+       const result=await loadImages(batch,token,onLoaded);
        if(!result||token!==searchToken)return cancelled();
-       loaded.push(...result.loaded);failures+=result.failures;
-       const status='Searching · '+loaded.length+' / '+target+' usable fragments';
-       report(status);if(vf.active)$('pairStatus').textContent=status;
+       if(!publish){loaded.push(...result.loaded);progress();}
+       failures+=result.failures;
        if(loaded.length===target)return {loaded,failures,issue};
+       if(publish&&assets.length>=MAX_FRAGMENTS&&(loaded.length||typeCount()>=MAX_FRAGMENTS))
+         return {loaded,failures,issue:'The deck is full.'};
      }
    }
  }catch(e){issue=e.message||'Source unavailable.';}
@@ -62,9 +90,8 @@ async function gatherArchiveByCount(){
    const query=new URLSearchParams({date:$('date').value,window:$('window').value,source,genre:$('genre').value,site:$('site').value,words:$('words').value,media});
    for(const k of types)query.set(k,$(k).value);
    const pages=$('abstractSearch').checked?abstractSearchPages(query,token):searchAllPages(query);
-   const result=await collectFragments(pages,token,target,media);
+   const result=await collectFragments(pages,token,target,media,progressiveDeck());
    if(!result||token!==searchToken)return;
-   if(result.loaded.length){assets=mergeTypeWithMedia(result.loaded);showAssets();}
    report(fragmentResultText(result.loaded.length,target,result.issue));
  }finally{if(token===searchToken)$('excavate').disabled=false;}
 }

@@ -1,4 +1,6 @@
 const videoPlayers=new Map();
+const preparedVideos=new WeakMap();
+const videoPlayAttempts=new WeakMap();
 const stageImages=new Map();
 const MAX_FRAGMENTS=512;
 const PREVIEW_EDGE=256;
@@ -32,12 +34,13 @@ function thumbnail(preview){
  target.getContext('2d').drawImage(preview,0,0,target.width,target.height);
  return target.toDataURL('image/webp',.76);
 }
-async function loadFragment(item){
+async function loadFragment(item,prepareForStage){
  if(item.kind==='type')return makeTypeFragment(item.typeSpec);
  const isVideo=item.kind==='video';
  if(isVideo&&item.image.startsWith('/archive-video?'))item=await resolveVideo(item);
  if(isVideo&&/^\/(nasa|peertube)-video\?/.test(item.image))item=await resolveCatalogVideo(item);
  const media=isVideo?makeFragmentVideo():new Image();
+ let retained=false;
  try{
    await new Promise((resolve,reject)=>{
      const timeout=setTimeout(()=>done(Error('Timed out loading '+item.title)),isVideo?30000:18000);
@@ -52,15 +55,22 @@ async function loadFragment(item){
    if(isVideo){
      const poster=document.createElement('canvas');
      if(!copyVideoFrame(media,poster))throw Error('No video frame available');
-     return {...item,img:poster,poster:thumbnail(poster),resumeAt:0};
+     const asset={...item,img:poster,poster:thumbnail(poster),resumeAt:0};
+     if(prepareForStage){preparedVideos.set(asset,media);retained=true;}
+     return asset;
    }
    if(!media.naturalWidth || (item.source!=='Local file' && isArchiveEmblem(media)))throw Error('Unavailable image');
    const preview=document.createElement('canvas');
    copyPreview(media,preview,media.naturalWidth,media.naturalHeight);
    return {...item,img:preview,poster:thumbnail(preview)};
- }finally{if(isVideo)detachVideo(media);}
+ }finally{if(isVideo&&!retained)detachVideo(media);}
+}
+function discardPreparedVideo(asset){
+ const video=preparedVideos.get(asset);
+ if(video){preparedVideos.delete(asset);detachVideo(video);}
 }
 function releaseFragment(item){
+ discardPreparedVideo(item);
  const player=videoPlayers.get(item);
  if(player){detachVideo(player);videoPlayers.delete(item);}
  if(item?.image?.startsWith('blob:'))URL.revokeObjectURL(item.image);
@@ -79,21 +89,30 @@ function reconcileFragmentDeck(){
 }
 function retireVideo(item,video){
  if(video.readyState>=2){
-   item.resumeAt=video.currentTime;
+   if(!item.liveStream)item.resumeAt=video.currentTime;
    copyVideoFrame(video,item.img);
  }
  detachVideo(video);videoPlayers.delete(item);
 }
-function playFragment(item){
- const video=makeFragmentVideo();
+function openFragmentVideo(item){
+ const video=preparedVideos.get(item)||makeFragmentVideo();
+ preparedVideos.delete(item);
  videoPlayers.set(item,video);
  video.onloadedmetadata=()=>{
    if(videoPlayers.get(item)!==video)return;
-   if(item.resumeAt>0 && item.resumeAt<video.duration)video.currentTime=item.resumeAt;
+   if(!item.liveStream&&item.resumeAt>0&&item.resumeAt<video.duration)video.currentTime=item.resumeAt;
  };
  if(item.liveStream)video.srcObject=item.liveStream;
- else video.src=item.image;
- video.play().catch(()=>{if(videoPlayers.get(item)===video && !video.paused)video.pause();});
+ else if(video.getAttribute('src')!==item.image)video.src=item.image;
+ return video;
+}
+function resumeFragmentVideo(video){
+ if(!video.paused||video.error||performance.now()<(videoPlayAttempts.get(video)||0))return;
+ videoPlayAttempts.set(video,Infinity);
+ video.play().then(()=>videoPlayAttempts.delete(video),()=>{
+   // A transient pause or pending seek can interrupt play. Give the decoder time before retrying.
+   videoPlayAttempts.set(video,performance.now()+350);
+ });
 }
 function syncFragmentPlayers(){
  const enabled=!frozen&&!document.hidden&&!videoBackgrounded;
@@ -104,10 +123,14 @@ function syncFragmentPlayers(){
    if(!item||item.kind==='video'||!item.poster||stageImages.has(item))continue;
    const image=new Image();stageImages.set(item,image);image.src=item.image;
  }
- for(const [item,video] of videoPlayers)if(!enabled||(item!==first&&item!==second))retireVideo(item,video);
+ for(const [item,video] of videoPlayers){
+   if(item!==first&&item!==second)retireVideo(item,video);
+   else if(!enabled&&!video.paused)video.pause();
+ }
  if(!enabled)return;
- if(first?.kind==='video'&&!videoPlayers.has(first))playFragment(first);
- if(second?.kind==='video'&&!videoPlayers.has(second))playFragment(second);
+ for(const item of [first,second]){
+   if(item?.kind==='video')resumeFragmentVideo(videoPlayers.get(item)||openFragmentVideo(item));
+ }
 }
 function fragmentFrame(item){
  const video=videoPlayers.get(item);

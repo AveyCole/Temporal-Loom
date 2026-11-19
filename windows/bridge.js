@@ -8,6 +8,22 @@ const Mic=(()=>{
  let deviceId=localStorage.getItem('windowsMicInput')||'';
  let asioDevices=[],asioDriver='',asioValues=[],asioReply,enumeration=0;
  let stream,context,meter,samples,pending=false,level=0;
+ let audioRequestId=0;
+ const audioRequests=new Map();
+ function decodeVideoAudio(asset){
+   const file=asset.file;
+   if(!file&&!asset.image?.startsWith('/folder/'))return Promise.resolve(null);
+   const id=++audioRequestId;
+   return new Promise(resolve=>{
+     const timer=setTimeout(()=>{audioRequests.delete(id);resolve(null);},58000);
+     audioRequests.set(id,url=>{clearTimeout(timer);audioRequests.delete(id);resolve(url);});
+     try{
+       if(file)window.chrome.webview.postMessageWithAdditionalObjects({action:'decodeVideoAudio',id,source:''},[file]);
+       else send('decodeVideoAudio',{id,source:asset.image});
+     }catch{audioRequests.get(id)(null);}
+   });
+ }
+ function releaseVideoAudio(url){if(url)send('releaseVideoAudio',{url});}
  async function listInputs(){
    const request=++enumeration;
    let devices;
@@ -34,6 +50,11 @@ const Mic=(()=>{
    asioValues=[];
    signal.value=0;
  }
+ function selectAsioChannels(){
+   const [left,right=-1]=channelPicker.value.split(',').map(Number);
+   clearAsioLevels();
+   send('asioChannels',{left,right});
+ }
  function installAsioChannels(driver,channels,pairs){
    const mono=document.createElement('optgroup');
    mono.label='Individual inputs';
@@ -48,6 +69,7 @@ const Mic=(()=>{
    const stored=localStorage.getItem('windowsAsioChannel:'+driver)||'0';
    channelPicker.value=Array.from(channelPicker.options).some(option=>option.value===stored)?stored:'0';
    channelField.hidden=false;
+   selectAsioChannels();
  }
  async function chooseInput(id){
    if(!id.startsWith('asio:')){
@@ -111,7 +133,12 @@ const Mic=(()=>{
    return level;
  }
  window.addEventListener('pagehide',stopInput);
- channelPicker.onchange=()=>{if(asioDriver)localStorage.setItem('windowsAsioChannel:'+asioDriver,channelPicker.value);};
+ channelPicker.onchange=()=>{
+   if(!asioDriver)return;
+   localStorage.setItem('windowsAsioChannel:'+asioDriver,channelPicker.value);
+   selectAsioChannels();
+ };
+ document.getElementById('asioSettings').onclick=()=>send('asioSettings');
  devicePicker.onchange=async()=>{
    const selected=devicePicker.value;
    if((stream||asioDriver)&&!await chooseInput(selected)){devicePicker.value=deviceId;return;}
@@ -137,6 +164,11 @@ const Mic=(()=>{
      report('ASIO reconnected.');
    },
    asioStopped:error=>{asioDriver='';clearAsioLevels();channelField.hidden=true;micState('Mic off');report(error);},
+   decodeVideoAudio,releaseVideoAudio,
+   videoAudioDecoded:(id,url)=>{
+     const settle=audioRequests.get(id);
+     if(settle)settle(url);else releaseVideoAudio(url);
+   },
    beginClip:format=>clip.Begin(format),writeClip:data=>clip.Write(data),
    discardClip:()=>clip.Discard(),finishClip:()=>send('finishClip'),
    shareClip:()=>send('shareClip'),full:value=>send('full',{value}),

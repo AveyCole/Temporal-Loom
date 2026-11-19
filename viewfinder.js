@@ -84,12 +84,49 @@ function switchTab(on){
  else{if(vf.pair)vf.pair.deck=snapshotDeck();restoreDeck(vf.studio);}
  window.scrollTo(0,0);
 }
+function showFieldLocation(sound){
+ const previous=vf.pair?.url;
+ discardFragmentAudio();
+ assignAudioMedia(null);
+ $('driver').value='drift';$('driver').onchange();
+ $('audioName').textContent=sound.title;
+ $('performanceTitle').textContent=sound.place;
+ $('fieldLink').href='https://archive.org/details/'+sound.id;$('fieldLink').hidden=false;
+ $('stageOrigin').textContent='VIEWFINDER';
+ vf.pair={url:null,deck:snapshotDeck()};
+ if(previous)URL.revokeObjectURL(previous);
+}
+async function playFieldRecording(sound,live){
+ let url;
+ try{
+   const response=await fetch('/field-audio?url='+encodeURIComponent(sound.src),{signal:AbortSignal.timeout(75000)});
+   if(!response.ok)throw Error('Recording unavailable.');
+   const data=await response.blob();if(!live())return '';
+   url=URL.createObjectURL(data);
+   const probe=new Audio();
+   try{
+     await new Promise((resolve,reject)=>{
+       const timer=setTimeout(()=>finish(Error('Audio load timed out.')),12000);
+       function finish(error){clearTimeout(timer);probe.onloadedmetadata=probe.onerror=null;if(error)reject(error);else resolve();}
+       probe.onloadedmetadata=()=>finish();probe.onerror=()=>finish(Error('Recording unavailable.'));
+       probe.src=url;
+     });
+   }finally{probe.removeAttribute('src');probe.load();}
+   if(!live()||fragmentSoundtrack)return '';
+   assignAudioMedia(url);
+   vf.pair.url=url;url=null;
+   $('driver').value='audio';$('driver').onchange();
+   try{await fileAudio.play();}catch{return 'Tap Play to hear the paired recording.';}
+   return '';
+ }catch{return 'The field recording could not be loaded.';}
+ finally{if(url)URL.revokeObjectURL(url);}
+}
 $('vfTab').onclick=()=>switchTab(true);$('studioTab').onclick=()=>switchTab(false);
 $('pairButton').onclick=async()=>{
  if(clipRecorder){report('Finish the clip before changing recordings.');return;}
  const target=chooseMediaTarget(),token=++searchToken,media=mediaMode(),live=()=>token===searchToken&&vf.active;
  if(!target){report('The deck is full of type fragments. Remove one to make room.');return;}
- $('pairButton').disabled=true;let temp=null;
+ $('pairButton').disabled=true;
  try{
    await ensureAudio();
    for(let attempt=0;attempt<3;attempt++){
@@ -97,27 +134,23 @@ $('pairButton').onclick=async()=>{
      $('pairStatus').textContent='Finding a field recording…';
      const sound=await randomField();if(!live())return;
      $('pairStatus').textContent='Searching for '+mediaModes[media]+' of '+sound.place+'…';
-     const deckData=await collectFragments(locationPages(sound,media),token,target,media);if(!live())return;
+     let audio;
+     const publish=progressiveDeck(()=>{
+       showFieldLocation(sound);
+       audio=playFieldRecording(sound,live);
+     });
+     const deckData=await collectFragments(locationPages(sound,media),token,target,media,publish);if(!live())return;
      if(!deckData?.loaded.length){if(deckData?.issue)throw Error(deckData.issue);continue;}
      const area=deckData.loaded.find(item=>item.area)?.area;
      const basis=area?'Includes area matches for '+area:'Photos tagged within 10 km';
      $('pairStatus').textContent='Loading '+sound.title+'…';
-     const r=await fetch('/field-audio?url='+encodeURIComponent(sound.src),{signal:AbortSignal.timeout(75000)});
-     if(!r.ok)continue;
-     temp=URL.createObjectURL(await r.blob());if(!live())return;
-     const probe=new Audio();await new Promise((ok,fail)=>{const timer=setTimeout(()=>fail(Error('Audio load timed out.')),12000);probe.onloadedmetadata=()=>{clearTimeout(timer);ok();};probe.onerror=()=>{clearTimeout(timer);fail(Error('Recording unavailable.'));};probe.src=temp;});
+     const audioStatus=await audio;
      if(!live())return;
-     const previous=vf.pair?.url;
-     discardFragmentAudio();
-     restoreDeck({assets:mergeTypeWithMedia(deckData.loaded),src:temp,time:0,driver:'audio',title:sound.place,name:sound.title,caption:sound.title});
-     vf.pair={url:temp,deck:snapshotDeck()};temp=null;if(previous)URL.revokeObjectURL(previous);
-     $('pairStatus').textContent=sound.title+' · '+sound.artist+' · '+basis;
-     $('fieldLink').href='https://archive.org/details/'+sound.id;$('fieldLink').hidden=false;
-     $('stageOrigin').textContent='VIEWFINDER';report(fragmentResultText(deckData.loaded.length,target,deckData.issue));
-     try{await fileAudio.play();}catch{report('Tap Play to hear the paired recording.');}return;
+     $('pairStatus').textContent=sound.title+' · '+sound.artist+' · '+basis+(audioStatus?' · '+audioStatus:'');
+     report(fragmentResultText(deckData.loaded.length,target,deckData.issue));return;
    }
    throw Error('No usable recording paired with '+mediaModes[media]+'. Try another location or media type.');
- }catch(e){if(live())$('pairStatus').textContent=e.message;}finally{if(temp)URL.revokeObjectURL(temp);if(live())$('pairButton').disabled=false;}
+ }catch(e){if(live())$('pairStatus').textContent=e.message;}finally{if(live())$('pairButton').disabled=false;}
 };
 let fullscreenControlsTimer;
 function setStageFull(on){

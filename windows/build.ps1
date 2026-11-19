@@ -34,7 +34,7 @@ $files=@('LoomWindow.cs','DisplayWindow.cs','Sources.cs','GoogleBrowser.cs','Cli
 $flags=@()
 if($Verify){$flags+= '/define:VERIFY';$files+='Verification.cs'}
 $framework=@('mscorlib','System','System.Core','System.Drawing','System.Windows.Forms','System.Net.Http','System.Web','System.Web.Extensions','System.Xml')
-& $csc /nologo /noconfig /nostdlib /langversion:5 /platform:x64 /target:winexe /optimize "/out:$out/Temporal Loom.exe" /win32manifest:app.manifest /win32icon:obj/loom.ico /resource:obj/index.html,index.html /resource:obj/archive.js,archive.js /resource:display.html,display.html /resource:../assets/thesaurus.json,thesaurus.json "/reference:$refs/Facades/netstandard.dll" ($framework | ForEach-Object { "/reference:$refs/$_.dll" }) ($libraries | ForEach-Object { "/reference:$_" }) $flags $files
+& $csc /nologo /noconfig /nostdlib /langversion:5 /platform:x64 /target:winexe /optimize /unsafe "/out:$out/Temporal Loom.exe" /win32manifest:app.manifest /win32icon:obj/loom.ico /resource:obj/index.html,index.html /resource:obj/archive.js,archive.js /resource:display.html,display.html /resource:../assets/thesaurus.json,thesaurus.json "/reference:$refs/Facades/netstandard.dll" ($framework | ForEach-Object { "/reference:$refs/$_.dll" }) ($libraries | ForEach-Object { "/reference:$_" }) $flags $files
 Copy-Item -LiteralPath $libraries -Destination $out -Force
 Copy-Item -LiteralPath "$naudio/Microsoft.Win32.Registry.dll" -Destination $out -Force
 Copy-Item -LiteralPath 'vendor/webview2/package/runtimes/win-x64/native/WebView2Loader.dll' -Destination $out -Force
@@ -52,4 +52,4 @@ Copy-Item -Path '../assets/type-licenses/*' -Destination "$out/Legal" -Force
 Copy-Item -LiteralPath '../assets/legal/WordNet-LICENSE.txt' -Destination "$out/Legal" -Force
 Copy-Item -LiteralPath '../assets/type-fonts' -Destination $out -Recurse -Force
 Copy-Item -LiteralPath 'START HERE.txt' -Destination $out -Force
-if(!$Verify){Compress-Archive -Path $out -DestinationPath 'dist/Temporal-Loom-1.17-Windows-x64.zip' -Force}
+if(!$Verify){Compress-Archive -Path $out -DestinationPath 'dist/Temporal-Loom-1.20-Windows-x64.zip' -Force}

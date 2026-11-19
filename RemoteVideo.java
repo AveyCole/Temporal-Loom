@@ -6,7 +6,7 @@ import java.net.*;
 import java.util.*;
 
 final class RemoteVideo {
-    static WebResourceResponse open(String target, String range)throws Exception{
+    static WebResourceResponse open(String target, String range, boolean audio)throws Exception{
         URL url=ImageSources.https(target);
         for(int hop=0;hop<6;hop++){
             HttpURLConnection request=(HttpURLConnection)url.openConnection();
@@ -24,7 +24,7 @@ final class RemoteVideo {
                     continue;
                 }
                 if(status!=200&&status!=206)throw new IOException("Video server returned "+status);
-                String mime=ImageSources.videoMime(request.getContentType(),url.getPath());
+                String mime=audio?audioMime(request.getContentType(),url.getPath()):ImageSources.videoMime(request.getContentType(),url.getPath());
                 if(mime==null)throw new IOException("Unsupported video format");
                 Map<String,String> headers=new HashMap<>();
                 headers.put("X-Content-Type-Options","nosniff");
@@ -41,5 +41,16 @@ final class RemoteVideo {
             }finally{if(!handedOff)request.disconnect();}
         }
         throw new IOException("Too many redirects");
+    }
+    static String audioMime(String type,String path){
+        String mime=String.valueOf(type).toLowerCase(Locale.ROOT).split(";")[0].trim();
+        if(mime.matches("audio/(mp4|mpeg|webm|aac|ogg|opus)"))return mime;
+        if(!mime.equals("application/octet-stream")&&!mime.equals("null"))return ImageSources.videoMime(type,path);
+        String file=path.toLowerCase(Locale.ROOT);
+        if(file.endsWith(".m4a"))return "audio/mp4";
+        if(file.endsWith(".mp3"))return "audio/mpeg";
+        if(file.endsWith(".aac"))return "audio/aac";
+        if(file.endsWith(".ogg")||file.endsWith(".opus"))return "audio/ogg";
+        return ImageSources.videoMime(type,path);
     }
 }

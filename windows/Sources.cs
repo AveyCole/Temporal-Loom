@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -21,6 +22,9 @@ namespace TemporalLoom
         private const int LocalSearchCandidates = 2048;
         private readonly LoomWindow app;
         private readonly ConcurrentDictionary<string, string> folderFiles = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, string> decodedAudio = new ConcurrentDictionary<string, string>();
+        private readonly System.Threading.SemaphoreSlim audioDecoder = new System.Threading.SemaphoreSlim(1);
+        private volatile bool closing;
         private readonly HttpClient http = new HttpClient(new HttpClientHandler
         {
             AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip
@@ -128,9 +132,15 @@ namespace TemporalLoom
                 if (!folderFiles.TryGetValue(path.Substring("/folder/".Length), out local)) throw new FileNotFoundException();
                 return OpenLocal(local, range);
             }
+            if (path.StartsWith("/decoded-audio/", StringComparison.Ordinal))
+            {
+                string local;
+                if (!decodedAudio.TryGetValue(path, out local)) throw new FileNotFoundException();
+                return OpenLocal(local, range, "audio/mpeg");
+            }
             var p = HttpUtility.ParseQueryString(url.Query);
             if (path == "/website") return await Website(p["url"], p["media"] ?? (p["video"] == "1" ? "both" : "photos"));
-            if (path == "/web-video") return await Video(p["url"], range);
+            if (path == "/web-video" || path == "/web-audio") return await Video(p["url"], range, path == "/web-audio");
             bool json = path == "/relay", sound = path == "/field-audio", websiteImage = path == "/web-image";
             string target = p["url"];
             if (path == "/api/image") target = ArchiveImage(p["kind"], p["id"], p["timestamp"], target);
@@ -284,7 +294,7 @@ namespace TemporalLoom
             throw new IOException("Too many redirects.");
         }
 
-        private async Task<Payload> Video(string target, string range)
+        private async Task<Payload> Video(string target, string range, bool audio)
         {
             Uri uri;
             if (!Uri.TryCreate(target, UriKind.Absolute, out uri)) throw new IOException();
@@ -309,7 +319,8 @@ namespace TemporalLoom
                         }
                         if (status != 200 && status != 206) throw new IOException("Video server returned " + status);
                         var headers = response.Content.Headers;
-                        string mime = VideoMime(headers.ContentType == null ? "" : headers.ContentType.MediaType, uri);
+                        string contentType = headers.ContentType == null ? "" : headers.ContentType.MediaType;
+                        string mime = audio ? AudioMime(contentType, uri) : VideoMime(contentType, uri);
                         if (mime == null) throw new IOException("Unsupported video format.");
                         string forwarded = headers.ContentRange == null ? "" : "Content-Range: " + headers.ContentRange + "\r\n";
                         if (headers.ContentLength.HasValue) forwarded += "Content-Length: " + headers.ContentLength + "\r\n";
@@ -322,6 +333,87 @@ namespace TemporalLoom
                 }
             }
             throw new IOException("Too many video redirects.");
+        }
+
+        private static string AudioMime(string type, Uri uri)
+        {
+            if (Regex.IsMatch(type, @"^audio/(mp4|mpeg|webm|aac|ogg|opus)$")) return type;
+            if (type.Length == 0 || type == "application/octet-stream")
+            {
+                switch (Path.GetExtension(uri.AbsolutePath).ToLowerInvariant())
+                {
+                    case ".m4a": return "audio/mp4";
+                    case ".mp3": return "audio/mpeg";
+                    case ".aac": return "audio/aac";
+                    case ".ogg":
+                    case ".opus": return "audio/ogg";
+                }
+            }
+            return VideoMime(type, uri);
+        }
+
+        internal async Task<string> DecodeVideoAudio(string source, string path)
+        {
+            if (path == null && source != null && source.StartsWith("/folder/", StringComparison.Ordinal))
+                folderFiles.TryGetValue(source.Substring("/folder/".Length), out path);
+            if (string.IsNullOrEmpty(path) || !File.Exists(path) || closing) return null;
+            string key = Guid.NewGuid().ToString("N");
+            string output = Path.Combine(Path.GetTempPath(), "TemporalLoom-audio-" + key + ".mp3");
+            string url = "/decoded-audio/" + key;
+            await audioDecoder.WaitAsync();
+            try
+            {
+                if (closing) return null;
+                bool success = await Task.Run(() => ConvertVideoAudio(path, output));
+                if (!success || closing) return null;
+                decodedAudio[url] = output;
+                return url;
+            }
+            finally
+            {
+                audioDecoder.Release();
+                if (!decodedAudio.ContainsKey(url)) DeleteSoundtrack(output);
+            }
+        }
+
+        private static bool ConvertVideoAudio(string input, string output)
+        {
+            var executable = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+            var arguments = "-hide_banner -loglevel error -nostdin -protocol_whitelist file -i \"" + input +
+                "\" -map 0:a:0 -vn -ac 2 -c:a libmp3lame -b:a 160k -y \"" + output + "\"";
+            using (var process = Process.Start(new ProcessStartInfo(executable, arguments)
+            {
+                UseShellExecute = false, CreateNoWindow = true
+            }))
+            {
+                if (!process.WaitForExit(55000))
+                {
+                    try { process.Kill(); }
+                    catch (InvalidOperationException) { }
+                    process.WaitForExit();
+                    return false;
+                }
+                return process.ExitCode == 0 && File.Exists(output) && new FileInfo(output).Length > 0;
+            }
+        }
+
+        internal void ReleaseVideoAudio(string url)
+        {
+            string file;
+            if (decodedAudio.TryRemove(url, out file)) DeleteSoundtrack(file);
+        }
+
+        internal void CloseVideoAudio()
+        {
+            closing = true;
+            foreach (string url in decodedAudio.Keys) ReleaseVideoAudio(url);
+        }
+
+        private static void DeleteSoundtrack(string file)
+        {
+            try { File.Delete(file); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         private sealed class VideoBody : Stream
@@ -347,10 +439,10 @@ namespace TemporalLoom
             protected override void Dispose(bool disposing) { if (disposing) response.Dispose(); base.Dispose(disposing); }
         }
 
-        private static Payload OpenLocal(string file, string range)
+        private static Payload OpenLocal(string file, string range, string mime = null)
         {
-            var input = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
-            string mime = MediaTypes[Path.GetExtension(file)];
+            var input = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+            if (mime == null) mime = MediaTypes[Path.GetExtension(file)];
             long length = input.Length, start = 0, end = length - 1;
             if (!string.IsNullOrEmpty(range))
             {

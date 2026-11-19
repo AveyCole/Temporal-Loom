@@ -66,7 +66,7 @@ namespace TemporalLoom
             FormClosed += (sender, e) =>
             {
                 if (display != null) display.Close();
-                asio.Dispose(); midi.Dispose(); clips.Discard(); Google.Dispose();
+                asio.Dispose(); midi.Dispose(); clips.Discard(); Google.Dispose(); Sources.CloseVideoAudio();
             };
         }
 
@@ -197,7 +197,11 @@ namespace TemporalLoom
                     case "midi": midi.Choose(); break;
                     case "asioList": asio.List(); break;
                     case "asioOpen": asio.Open((string)message["driver"]); break;
+                    case "asioChannels": asio.SelectChannels((int)message["left"], (int)message["right"]); break;
+                    case "asioSettings": asio.ShowSettings(); break;
                     case "asioStop": asio.Stop(); break;
+                    case "decodeVideoAudio": await DecodeVideoAudio(message, e); break;
+                    case "releaseVideoAudio": Sources.ReleaseVideoAudio((string)message["url"]); break;
                     case "full": SetFullscreen((bool)message["value"]); break;
                     case "displayFullscreen": if (display != null) display.ToggleFullscreen(); break;
                     case "reattachDisplay": if (display != null) display.Close(); break;
@@ -207,6 +211,16 @@ namespace TemporalLoom
             {
                 RunScript("report(" + Json(error.Message) + ")");
             }
+        }
+
+        private async Task DecodeVideoAudio(Dictionary<string, object> message, CoreWebView2WebMessageReceivedEventArgs args)
+        {
+            var objects = args.AdditionalObjects;
+            var file = objects != null && objects.Count == 1 ? objects[0] as CoreWebView2File : null;
+            string url = null;
+            try { url = await Sources.DecodeVideoAudio((string)message["source"], file == null ? null : file.Path); }
+            catch (Exception) { /* The browser can restore the previous soundtrack. */ }
+            RunScript("Mic.videoAudioDecoded(" + Json(message["id"]) + "," + Json(url) + ")");
         }
 
         private async Task PickFolder(string media)

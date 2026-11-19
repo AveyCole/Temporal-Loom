@@ -62,7 +62,7 @@ async function* peerTubeVideoPages(terms){
 async function resolveCatalogVideo(item){
  const u=new URL(item.image,location.origin),id=u.searchParams.get('id');
  if(!id||!/^[\w.-]{1,200}$/.test(id))throw Error('Invalid catalog video');
- let url;
+ let url,audio;
  if(u.pathname==='/nasa-video'){
    const data=await fieldJSON('https://images-api.nasa.gov/asset/'+encodeURIComponent(id));
    const files=(data.collection?.items||[]).map(entry=>entry.href?.replace(/^http:/,'https:'))
@@ -72,11 +72,19 @@ async function resolveCatalogVideo(item){
    const host=u.searchParams.get('host');
    if(!peerTubeHosts.includes(host))throw Error('Invalid PeerTube host');
    const data=await fieldJSON('https://'+host+'/api/v1/videos/'+encodeURIComponent(id));
-   const files=[...(data.files||[]),...(data.streamingPlaylists||[]).flatMap(entry=>entry.files||[])]
-     .filter(file=>file.hasVideo!==false&&file.resolution?.id!==0&&file.fileUrl?.startsWith('https://')&&/\.(mp4|webm)(?:$|\?)/i.test(file.fileUrl));
-   files.sort((a,b)=>Math.abs((a.resolution?.id||480)-480)-Math.abs((b.resolution?.id||480)-480));
-   url=files[0]?.fileUrl;
+   const selection=peerTubeRenditions(data);
+   url=selection.video;audio=selection.audio;
  }
  if(!url)throw Error('No compatible video rendition');
- return {...item,image:remoteVideo(new URL(url).href)};
+ return {...item,image:remoteVideo(new URL(url).href),audio:audio?'/web-audio?url='+encodeURIComponent(audio):undefined};
+}
+function peerTubeRenditions(data){
+ const files=[...(data.files||[]),...(data.streamingPlaylists||[]).flatMap(entry=>entry.files||[])]
+   .filter(file=>file.fileUrl?.startsWith('https://')&&/\.(mp4|webm|m4a|aac|mp3|opus|ogg)(?:$|\?)/i.test(file.fileUrl));
+ const audioOnly=file=>file.hasVideo===false||file.resolution?.id===0||/\.(m4a|aac|mp3|opus|ogg)(?:$|\?)/i.test(file.fileUrl);
+ const audio=files.find(file=>audioOnly(file)&&file.hasAudio!==false);
+ const videos=files.filter(file=>!audioOnly(file));
+ const rank=file=>Math.abs((file.resolution?.id||480)-480)+(file.hasAudio===false&&!audio?10000:0);
+ videos.sort((a,b)=>rank(a)-rank(b));
+ return {video:videos[0]?.fileUrl,audio:audio?.fileUrl};
 }

@@ -10,8 +10,13 @@ $('images').onchange=async event=>{
    return [{title:file.name,date:'Local file',source:'Local file',kind:video?'video':'image',image:URL.createObjectURL(file),file}];
  });
  if(!items.length){report('Choose a photo or a supported video file.');return;}
- const result=await loadImages(items,token);
+ const publish=progressiveDeck();
+ let loaded=0;
+ const result=await loadImages(items,token,asset=>{
+   if(!publish(asset))return false;
+   report('Loaded '+(++loaded)+' local fragments…');
+   return true;
+ });
  if(!result||token!==searchToken)return;
- if(result.loaded.length){assets=mergeTypeWithMedia(result.loaded);showAssets();}
  report('Loaded '+result.loaded.length+' local fragments.'+(result.failures?' '+result.failures+' could not be opened.':'')+(selected>MAX_FRAGMENTS?' Up to '+MAX_FRAGMENTS+' files can be loaded at once.':''));
 };
