@@ -89,7 +89,7 @@ async function gatherArchiveByCount(){
  try{
    const query=new URLSearchParams({date:$('date').value,window:$('window').value,source,genre:$('genre').value,site:$('site').value,words:$('words').value,media});
    for(const k of types)query.set(k,$(k).value);
-   const pages=$('abstractSearch').checked?abstractSearchPages(query,token):searchAllPages(query);
+   const pages=$('abstractSearch').checked?abstractSearchPages(query,token):searchAllPages(query,token);
    const result=await collectFragments(pages,token,target,media,progressiveDeck());
    if(!result||token!==searchToken)return;
    report(fragmentResultText(result.loaded.length,target,result.issue));

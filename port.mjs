@@ -7,7 +7,7 @@ html=html.replace('<script>', '<script src="/archive.js"></script><script>')
 .replace(/<link[^>]+(?:manifest|icon)[^>]*>/g,'')
 .replace('<button class="quiet" id="install">Install','<button hidden id="install">Install')
 .replace(/<p>On Android, use Chrome[\s\S]*?<\/p>/,'')
-.replace('<label for="genre">','<label for="words">Custom search words</label><input id="words" maxlength="160" placeholder="e.g. neon, transistor, moon"><p class="note">Separate words or phrases with commas. Leave empty to use the preset and genre.</p><details open><summary>Internet Archive image mix</summary><div id="weights"></div></details><label for="genre">')
+.replace('<label for="genre">','<label for="words">Custom search words</label><input id="words" maxlength="160" placeholder="e.g. neon, night train, moon"><p class="note">Separate words or phrases with commas to build a deck from multiple searches. Leave empty to use the preset and genre.</p><details open><summary>Internet Archive image mix</summary><div id="weights"></div></details><label for="genre">')
 .replace('<div class="control-grid">','<label for="effect">Morph style</label><select id="effect"><option>Scanlines</option><option>Kaleidoscope</option><option>Echo tunnel</option><option>Tidal ripple</option><option>Crossfade</option></select><div class="control-grid">')
 .replace('<option value="audio">','<option value="mic">Live microphone</option><option value="audio">')
 .replace('<label class="file-label">Load an audio file','<button id="micButton" class="wide">Mic off</button><label class="file-label">Load an audio file')
@@ -122,7 +122,7 @@ html=html.replace('</style>',`
  .stage-wrap.expanded.show-fullscreen-controls .stage-bottom{visibility:visible;justify-content:flex-end;background:none}
  </style>`);
 html=html.replace('<label for="effect">','<button type="button" id="mutateMorph" title="Regenerate the organic shape">Mutate morph</button><label for="effect">')
- .replace('initFragmentRange();initLooks();',match=>fs.readFileSync('organic.js','utf8')+'\n'+match)
+ .replace('initFragmentRange();initLooks();',match=>fs.readFileSync('organic-variants.js','utf8')+'\n'+fs.readFileSync('organic.js','utf8')+'\n'+match)
  .replace('const session={fragmentRange:','const session={organicSeed,fragmentRange:')
  .replace('if(data.fragmentRange)setFragmentRange(data.fragmentRange);','if(Number.isFinite(data.organicSeed))organicSeed=data.organicSeed;if(data.fragmentRange)setFragmentRange(data.fragmentRange);')
  .replace("drawCover(images[a%images.length],1,0,motionTime);ctx.globalCompositeOperation='screen';drawCover(images[b%images.length],morph,2,motionTime);",`
@@ -184,6 +184,30 @@ html=html.replace('<div class="eyebrow">FRAGMENT DECK</div>',
 .deck-dragging{opacity:.55}.deck-dragging .deck-handle{cursor:grabbing}
 .deck-cell[data-drop]::after{content:'';position:absolute;background:var(--acid);width:3px;top:0;bottom:0;pointer-events:none}
 .deck-cell[data-drop="before"]::after{left:0}.deck-cell[data-drop="after"]::after{right:0}
+</style>`);
+html=html.replace('<button id="next">Next fragment</button>',`<button id="next">Next fragment</button>
+ <details class="tempo-settings"><summary id="tempoSummary">Tempo sync</summary><div class="tempo-fields">
+ <label><input type="checkbox" id="tempoSync"> Sync fragments to tempo</label>
+ <label>BPM <input type="number" min="20" max="400" step="1" value="120" id="tempoBpm"></label>
+ <label>Division <select id="tempoDivision">${['1/32','1/24','1/16','3/32','1/12','1/8','1/6','3/16','1/4','3/12','1/3','3/8','1/2','3/4','1/1','custom'].map(value=>`<option value="${value}">${value==='custom'?'Custom':value}</option>`).join('')}</select></label>
+ <label id="tempoCustomField" hidden>Fraction <input id="tempoCustom" value="5/16" maxlength="7" placeholder="5/16"></label>
+ </div></details>`)
+ .replace('initMediaMode();initFragmentRange();',match=>fs.readFileSync('tempo.js','utf8')+'\ninitTempo();'+match)
+ .replace('function choose(index){const n=', 'function choose(index){tempoClock.reset();const n=')
+ .replace("frozen=!frozen;$('freeze')", "frozen=!frozen;if(frozen)tempoClock.pause(performance.now());$('freeze')")
+ .replace('if(!frozen){const motionTime=', 'const tempoDriven=updateFragmentTempo(ms);if(!frozen){const motionTime=')
+ .replace("if(!manual){if(driver==='drift'||reactive)", "if(!tempoDriven&&!manual){if(driver==='drift'||reactive)")
+ .replace('if(!preserveStage&&!start){a=0;', 'if(!preserveStage&&!start){tempoClock.reset();a=0;')
+ .replace('const session={typeFonts:', 'const session={tempo:tempoSettings,typeFonts:')
+ .replace('await restoreTypeFonts(data.typeFonts);', 'await restoreTypeFonts(data.typeFonts);restoreTempo(data.tempo);')
+ .replace('image,audio,kind,typeSpec})=>', 'image,audio,kind,typeSpec,videoStart})=>')
+ .replace('{title,date,source,link,image,audio,kind}', '{title,date,source,link,image,audio,kind,videoStart}')
+ .replace('cell.append(use);', 'cell.append(use);if(!asset.liveStream)cell.append(videoStartControl(asset));')
+ .replace('</style>',`\n.tempo-settings{font-size:12px;flex:0 1 auto}.tempo-settings[open]{flex-basis:100%}
+.tempo-fields{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:6px 0}
+.tempo-fields label{display:flex;align-items:center;gap:6px;margin:0}.tempo-fields label[hidden]{display:none}
+.tempo-fields input,.tempo-fields select{margin:0;width:auto}.tempo-fields input:not([type=checkbox]){width:5.5em}
+.fragment-video-start{display:flex;flex-direction:column;gap:2px;margin:3px 0 0;font-size:10px}.fragment-video-start select{margin:0;padding:3px 4px;font-size:11px;min-height:29px}
 </style>`);
 fs.writeFileSync('assets/index.html',html);
 fs.copyFileSync('archive-pages.js','assets/archive.js');

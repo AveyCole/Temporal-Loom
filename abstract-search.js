@@ -34,7 +34,7 @@ function getThesaurus(){
 }
 function searchVariants(seed,thesaurus){
  const normalize=value=>value.toLowerCase().replace(/[^\p{L}\p{N} -]+/gu,' ').trim().replace(/\s+/g,' ');
- const phrases=[...new Set(seed.split(',').map(normalize).filter(Boolean))];
+ const phrases=[...new Set(splitSeedTerms(seed).map(normalize).filter(Boolean))];
  const variants=phrases.map(phrase=>{
    const direct=Object.hasOwn(thesaurus,phrase)?thesaurus[phrase]:[];
    const words=phrase.split(' ');
@@ -44,7 +44,6 @@ function searchVariants(seed,thesaurus){
    return [...direct,...related.map(word=>[...words.slice(0,-1),word].join(' '))];
  });
  const results=new Set(),originals=new Set(phrases);
- originals.add(phrases.join(' '));
  for(let i=0;variants.some(group=>group.length>i);i++)for(const group of variants){
    if(group[i]&&!originals.has(group[i]))results.add(group[i]);
    if(results.size===6)return [...results];
@@ -52,7 +51,7 @@ function searchVariants(seed,thesaurus){
  return [...results];
 }
 async function* abstractSearchPages(query,token){
- yield* searchAllPages(query);
+ yield* searchAllPages(query,token);
  if(token!==searchToken)return;
  const seed=query.get('words').trim();
  if(!seed)return;
@@ -60,7 +59,7 @@ async function* abstractSearchPages(query,token){
  try{terms=searchVariants(seed,await getThesaurus());}
  catch(error){yield {items:[],issue:error.message};return;}
  if(!terms.length||token!==searchToken)return;
- recordSearchTerm(seed);
+ for(const term of splitSeedTerms(seed))recordSearchTerm(term);
  for(const term of terms){
    if(token!==searchToken)return;
    recordSearchTerm(term);
@@ -68,7 +67,7 @@ async function* abstractSearchPages(query,token){
    const next=new URLSearchParams(query);
    next.set('words',term);
    let pages=0;
-   for await(const page of searchAllPages(next)){
+   for await(const page of searchAllPages(next,token)){
      yield page;
      if(++pages===3||token!==searchToken)break;
    }

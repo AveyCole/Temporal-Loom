@@ -22,6 +22,20 @@ namespace TemporalLoom
                 {
                     await Until(core, "typeof scrambleInstrument==='function' && typeof loadFragment==='function'", 12);
                     log.WriteLine("Shared interface loaded");
+                    if (Array.IndexOf(args, "--performance-only") >= 0)
+                    {
+                        await CheckSeedTerms(core);
+                        await CheckProgressiveSearch(core);
+                        await CheckAbstractSearch(core, app, target);
+                        log.WriteLine("Independent phrases, Google queue, progressive loading and Abstract search passed.");
+                        await CheckTempoAndVideo(core, app, target);
+                        log.WriteLine("Tempo timing, freeze, beginning and random video starts passed.");
+                        await CheckOrganicMorphs(core, target);
+                        log.WriteLine("All 30 distinct organic morphs rendered in WebGL and responded to phase, audio and seed.");
+                        log.WriteLine("PASS");
+                        app.Close();
+                        return;
+                    }
                     if (Array.IndexOf(args, "--media-only") >= 0)
                     {
                         await CheckMediaRanges(core, app, target);
@@ -57,7 +71,7 @@ namespace TemporalLoom
                     log.WriteLine("Mic input enumeration, choice and live switching passed with simulated inputs");
                     await CheckAsio(core, log);
                     await CheckOrganicMorphs(core, target);
-                    log.WriteLine("Ten organic morphs responded to phase, audio and seed changes");
+                    log.WriteLine("Organic morphs responded to phase, audio and seed changes");
                     await CheckRemoteVideo(core);
                     log.WriteLine("Videos mode searched Internet Archive and played a moving fragment");
                     await CheckCatalogs(core, log);
@@ -113,6 +127,80 @@ namespace TemporalLoom
                 if (!passed) log.WriteLine(await core.ExecuteScriptAsync("JSON.stringify({status:$('status').textContent,clip:$('clipStatus').textContent,sources:assets.map(x=>x.source)})"));
                 app.Close();
             }
+        }
+        private static async Task CheckSeedTerms(CoreWebView2 core)
+        {
+            await core.ExecuteScriptAsync(@"
+                window.qaSeeds=(async()=>{
+                    const originalGoogle=Mic.googleSearch,originalField=fieldJSON,originalLoad=loadFragment;
+                    const calls=[],catalog=[];
+                    try{
+                        Mic.googleSearch=(id,term,offset)=>{
+                          calls.push([term,offset]);
+                          setTimeout(()=>googleResult(id,Array.from({length:6},(_,i)=>({
+                            title:term,kind:'image',source:'Google Images',date:'Fixture',image:'fixture:'+term+':'+i
+                          }))),30);
+                        };
+                        loadFragment=async item=>({...item,img:demo(0),poster:demo(0).toDataURL()});
+                        $('source').value='google';$('source').onchange();setMediaMode('photos');setAbstractSearch(false);
+                        $('words').value='night train,  ocean, Night Train, ,';setFragmentRange({min:4,max:4});
+                        await gatherArchiveByCount();
+                        if(assets.length!==4||new Set(assets.map(item=>item.title)).size!==2||calls.length!==2||
+                           !calls.some(([term,offset])=>term==='night train'&&offset===0)||!calls.some(([term])=>term==='ocean'))return false;
+                        fieldJSON=async url=>{
+                          const q=new URL(url).searchParams.get('q');catalog.push(q);
+                          return {collection:{items:[{data:[{nasa_id:q==='moon rock'?'first':'second',title:q}]}],metadata:{total_hits:1}}};
+                        };
+                        const videos=new URLSearchParams({source:'nasa',media:'videos',genre:'none',words:'moon rock, ocean'});
+                        const clips=[];
+                        for await(const page of searchAllPages(videos))clips.push(...page.items);
+                        return clips.length===2&&catalog.length===2&&catalog.includes('moon rock')&&catalog.includes('ocean');
+                    }finally{
+                        Mic.googleSearch=originalGoogle;fieldJSON=originalField;loadFragment=originalLoad;
+                        $('source').value='blended';$('source').onchange();$('words').value='';assets=[];showAssets();
+                        setMediaMode('photos');setFragmentRange(DEFAULT_FRAGMENT_RANGE);
+                    }
+                })().then(result=>window.qaSeedsPassed=result);
+            ");
+            await Until(core, "window.qaSeedsPassed===true", 12);
+        }
+        private static async Task CheckTempoAndVideo(CoreWebView2 core, LoomWindow app, string target)
+        {
+            var media = app.Sources.ReadFolder(Path.Combine(target, "media"));
+            await core.ExecuteScriptAsync(@"
+                const qaClock=makeTempoClock(),tick=60000/120*tempoFraction('1/8').beats;
+                const first=qaClock.advance(3500,tick),late=qaClock.advance(4425,tick);
+                qaClock.pause(4475);
+                const resumed=qaClock.advance(9000,tick),boundary=qaClock.advance(9050,tick);
+                window.qaTempoMath=tick===250&&tempoFraction('3/12').beats===1&&tempoFraction('5/16').beats===1.25&&
+                  first.steps===0&&late.steps===3&&Math.abs(late.phase-.7)<.0001&&resumed.steps===0&&Math.abs(resumed.phase-.9)<.0001&&boundary.steps===1&&tempoFraction('1/0')===null;
+                const qaTimingMedia=" + LoomWindow.Json(media) + @";
+                const qaTimingStill=qaTimingMedia.find(asset=>asset.kind==='image'),qaTimingClip=qaTimingMedia.find(asset=>asset.kind==='video');
+                loadImages([{...qaTimingStill,title:'First'},qaTimingClip,{...qaTimingStill,title:'Third'}],++searchToken)
+                  .then(result=>{assets=result.loaded;showAssets();$('defaultFx').click();});
+            ");
+            await Until(core, "qaTempoMath&&assets.length===3&&videoPlayers.get(assets[1])?.readyState>=2", 10);
+            await core.ExecuteScriptAsync(@"
+                restoreTempo({enabled:true,bpm:120,division:'3/12'});
+                const title=$('tempoSummary').textContent;
+                updateFragmentTempo(1000);updateFragmentTempo(1499);
+                const before=a===0&&b===1&&morph>.99;
+                updateFragmentTempo(1500);
+                window.qaTempoRoute=before&&a===1&&b===2&&morph===0&&title.includes('3/12');
+                restoreTempo();
+                const picker=deckStrip.children[1].querySelector('.fragment-video-start select');
+                window.qaStartVideo=assets[1];window.qaStartPicker=picker;
+                const player=videoPlayers.get(qaStartVideo);player.currentTime=1;
+                picker.value='beginning';picker.onchange();
+                deckStrip.children[1].querySelector('.asset').click();
+                window.qaStartedAtBeginning=player.currentTime<.05&&player.loop;
+                picker.value='random';picker.onchange();
+                const savedRandom=Math.random;try{Math.random=()=>.75;deckStrip.children[1].querySelector('.asset').click();}
+                finally{Math.random=savedRandom;}
+                window.qaRandomSeek=player.currentTime;manual=true;
+            ");
+            await Until(core, "qaTempoRoute&&qaStartedAtBeginning&&qaRandomSeek>.7&&!videoPlayers.get(qaStartVideo)?.loop&&videoPlayers.get(qaStartVideo)?.currentTime>.7", 6);
+            await core.ExecuteScriptAsync("assets=[];showAssets();applyLook(false)");
         }
         private static async Task CheckMediaRanges(CoreWebView2 core, LoomWindow app, string target)
         {
@@ -659,6 +747,8 @@ namespace TemporalLoom
                 const qaSheet=document.createElement('canvas');qaSheet.width=960;qaSheet.height=252*Math.ceil(organicStyles.length/3);
                 const gallery=qaSheet.getContext('2d');
                 const originals=demo(0),incoming=demo(1),hashes=new Set();
+                const renderer=createOrganicRenderer();if(!renderer)throw Error('WebGL unavailable.');organicRenderer=renderer;
+                const seed=organicSeed,width=canvas.width,height=canvas.height;canvas.width=384;canvas.height=270;
                 let changes=0, audioChanges=0, seedChanges=0;
                 function sample(p,t,level=0,pulse=0){
                   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
@@ -666,24 +756,24 @@ namespace TemporalLoom
                   return canvas.toDataURL();
                 }
                 organicStyles.forEach((style,i)=>{
-                  $('effect').value=style;
+                  $('effect').value=style;organicSeed=seed;
                   const calm=sample(.48,.7);
+                  hashes.add(calm);
                   if(calm!==sample(.31,2.1))changes++;
                   if(calm!==sample(.48,.7,.7,.65))audioChanges++;
                   organicSeed+=17;if(calm!==sample(.48,.7))seedChanges++;
                   sample(.48,.7,.38,.4);
-                  hashes.add(canvas.toDataURL());
                   const x=(i%3)*320,y=Math.floor(i/3)*252;
                   gallery.drawImage(canvas,x,y,320,227);
                   gallery.fillStyle='#101817';gallery.fillRect(x,y+227,320,25);
                   gallery.font='14px sans-serif';gallery.fillStyle='white';gallery.fillText(style,x+11,y+244);
                 });
-                window.qaOrganic={styles:hashes.size,changes,audioChanges,seedChanges,compiled:!!createOrganicRenderer()};
+                window.qaOrganic={styles:hashes.size,changes,audioChanges,seedChanges,compiled:organicRenderer===renderer};
                 window.qaOrganicImage=qaSheet.toDataURL('image/png').split(',')[1];
-                $('effect').value=qaStyle;$('warp').value=qaWarpValue;updateOutputs();frozen=false;
+                canvas.width=width;canvas.height=height;organicSeed=seed;$('effect').value=qaStyle;$('warp').value=qaWarpValue;updateOutputs();frozen=false;
             ");
             string outcome = await core.ExecuteScriptAsync("JSON.stringify(qaOrganic)");
-            await Until(core, "qaOrganic.styles===10 && qaOrganic.changes===10 && qaOrganic.audioChanges===10 && qaOrganic.seedChanges===10 && qaOrganic.compiled", 10);
+            await Until(core, "qaOrganic.styles===30 && qaOrganic.changes===30 && qaOrganic.audioChanges===30 && qaOrganic.seedChanges===30 && qaOrganic.compiled", 10);
             var serializer = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = 16 * 1024 * 1024 };
             var image = serializer.Deserialize<string>(await core.ExecuteScriptAsync("qaOrganicImage"));
             File.WriteAllBytes(Path.Combine(target, "organic-morphs.png"), Convert.FromBase64String(image));

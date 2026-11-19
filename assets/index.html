@@ -42,8 +42,14 @@ button.knob-card{display:grid;grid-template-columns:30px 1fr;grid-template-rows:
 .deck-dragging{opacity:.55}.deck-dragging .deck-handle{cursor:grabbing}
 .deck-cell[data-drop]::after{content:'';position:absolute;background:var(--acid);width:3px;top:0;bottom:0;pointer-events:none}
 .deck-cell[data-drop="before"]::after{left:0}.deck-cell[data-drop="after"]::after{right:0}
+
+.tempo-settings{font-size:12px;flex:0 1 auto}.tempo-settings[open]{flex-basis:100%}
+.tempo-fields{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:6px 0}
+.tempo-fields label{display:flex;align-items:center;gap:6px;margin:0}.tempo-fields label[hidden]{display:none}
+.tempo-fields input,.tempo-fields select{margin:0;width:auto}.tempo-fields input:not([type=checkbox]){width:5.5em}
+.fragment-video-start{display:flex;flex-direction:column;gap:2px;margin:3px 0 0;font-size:10px}.fragment-video-start select{margin:0;padding:3px 4px;font-size:11px;min-height:29px}
 </style><link id="typeFontCatalog" rel="stylesheet" href="/type-fonts/catalog.css"></head><body><header><div class="brand"><span class="logo" aria-hidden="true">≋</span><div><h1>Temporal Loom</h1><p>Archive fragments. New frequencies.</p></div></div><div class="top-actions"><button hidden id="install">Install</button><button class="quiet" id="save">Save session</button></div></header><nav class="mode-tabs" aria-label="Instrument mode"><button id="studioTab" aria-pressed="true">Studio</button><button id="vfTab" aria-pressed="false">Viewfinder</button><button type="button" id="typeTab" aria-pressed="false">Type</button><span id="topMic"></span></nav>
-<main><aside><div class="eyebrow">THE EXCAVATION</div><h2>Find a memory.</h2><p class="muted">Choose a time. Give it a direction. Play what comes back.</p><div class="grid2"><div><label for="date">Anchor date</label><input id="date" type="date" value="1999-06-15" min="1850-01-01"></div><div><label for="window">Search radius</label><select id="window"><option value="0">Exact day</option><option value="30">± 30 days</option><option value="365" selected>± 1 year</option><option value="1825">± 5 years</option><option value="3650">± 10 years</option><option value="5475">± 15 years</option><option value="7300">± 20 years</option><option value="9125">± 25 years</option><option value="10950">± 30 years</option></select></div></div><label for="words">Seed words</label><input id="words" maxlength="160" placeholder="e.g. neon, transistor, moon"><p class="note">Separate words or phrases with commas. Leave empty to use the selected genre.</p><details open><summary>Internet Archive image mix</summary><div id="weights"></div></details><label for="genre">Visual genre</label><select id="genre"><option value="none">None · Any genre</option><option value="art">Art &amp; design</option><option value="people">People &amp; everyday life</option><option value="history">History &amp; documentary</option><option value="travel">Travel &amp; landscapes</option><option value="industry">Industry &amp; technology</option><option value="ephemera">Print & ephemera</option><option value="broadcast">Broadcast & music</option><option value="science">Space & science</option><option value="digital">Early web & games</option><option value="nature">Nature & field studies</option><option value="architecture">Cities & architecture</option></select><label for="source">Gather from</label><select id="source"><option value="blended">All sources · Archive, Wayback, Google Images &amp; Wikipedia</option><option value="google">Google Images</option><option value="nasa">NASA video library</option><option value="peertube">PeerTube videos</option><option value="commons-video">Wikimedia Commons videos</option><option value="ia-video">Internet Archive videos · any date</option><option value="wikipedia">Wikipedia</option><option value="ia">Internet Archive only</option><option value="wayback">Wayback · genre collection</option><option value="wayback-site">Wayback · custom website</option><option value="website">Live website</option><option value="folder">Local folder</option></select><button type="button" id="browseGoogle">Open Google Images</button><div id="siteField" hidden><label for="site">Original website or image URL</label><input id="site" type="url" placeholder="https://www.nasa.gov/"><p class="note">Searches image captures under this URL. Custom mode searches this website. Genre mode automatically searches a curated set of relevant sites.</p></div><button class="primary wide" id="excavate">Excavate fragments</button><p class="note" id="dateNote">Internet Archive uses the work’s publication/creation date. Wayback uses its capture date. Genre collections merge both into one fragment deck, with actual dates shown.</p><div class="rule"><div class="eyebrow">THE IMPULSE</div><label for="driver">Motion source</label><select id="driver"><option value="drift">Free drift</option><option value="mic">Live microphone</option><option value="audio">Audio impulses</option><option value="midi">MIDI input</option></select><button id="micButton" class="wide">Mic off</button><label class="file-label">Load audio or video sound<input id="audioFile" type="file" accept="audio/*,video/*"></label><audio id="audio" controls preload="metadata"></audio><p class="note" id="audioName">Audio stays on your device. Tap Play after loading.</p><button class="wide" id="connectMidi">Connect MIDI</button><select id="midiDevices" aria-label="MIDI input device" hidden></select><p class="note" id="midiNote">Notes select fragments. CC1 blends, CC74 warps. A connected controller and Chrome MIDI permission are required.</p></div><details class="rule"><summary>Local images & session import</summary><label class="file-label">Add photos or videos<input id="images" type="file" multiple accept="image/*,video/*"></label><label class="file-label">Restore session JSON<input id="import" type="file" accept="application/json,.json"></label><p class="note">Local files remain local. Save session stores settings and archive references, not local images or audio.</p></details><details><summary>How this instrument works</summary><div class="help"><p>Free drift slowly moves through fragments. Audio mode measures bass energy and transients; stronger impulses advance the image pair. MIDI notes choose images by note number, CC1 scrubs the transition, and CC74 sets distortion.</p><p>Morphing combines crossfades, blend modes, and displaced scanline slices. It is a real-time collage, not an AI semantic interpolation.</p><p>Exact-day searches may return nothing. Increase the radius explicitly; dates are never silently widened. Archive services may be slow, unavailable, or restrict some captures.</p><p>The first display is a synthetic demo. Use Excavate to replace it with actual archived images. Source links below the stage provide provenance; check those sources before reusing work.</p></div></details></aside>
+<main><aside><div class="eyebrow">THE EXCAVATION</div><h2>Find a memory.</h2><p class="muted">Choose a time. Give it a direction. Play what comes back.</p><div class="grid2"><div><label for="date">Anchor date</label><input id="date" type="date" value="1999-06-15" min="1850-01-01"></div><div><label for="window">Search radius</label><select id="window"><option value="0">Exact day</option><option value="30">± 30 days</option><option value="365" selected>± 1 year</option><option value="1825">± 5 years</option><option value="3650">± 10 years</option><option value="5475">± 15 years</option><option value="7300">± 20 years</option><option value="9125">± 25 years</option><option value="10950">± 30 years</option></select></div></div><label for="words">Seed words</label><input id="words" maxlength="160" placeholder="e.g. neon, night train, moon"><p class="note">Separate words or phrases with commas to build a deck from multiple searches. Leave empty to use the selected genre.</p><details open><summary>Internet Archive image mix</summary><div id="weights"></div></details><label for="genre">Visual genre</label><select id="genre"><option value="none">None · Any genre</option><option value="art">Art &amp; design</option><option value="people">People &amp; everyday life</option><option value="history">History &amp; documentary</option><option value="travel">Travel &amp; landscapes</option><option value="industry">Industry &amp; technology</option><option value="ephemera">Print & ephemera</option><option value="broadcast">Broadcast & music</option><option value="science">Space & science</option><option value="digital">Early web & games</option><option value="nature">Nature & field studies</option><option value="architecture">Cities & architecture</option></select><label for="source">Gather from</label><select id="source"><option value="blended">All sources · Archive, Wayback, Google Images &amp; Wikipedia</option><option value="google">Google Images</option><option value="nasa">NASA video library</option><option value="peertube">PeerTube videos</option><option value="commons-video">Wikimedia Commons videos</option><option value="ia-video">Internet Archive videos · any date</option><option value="wikipedia">Wikipedia</option><option value="ia">Internet Archive only</option><option value="wayback">Wayback · genre collection</option><option value="wayback-site">Wayback · custom website</option><option value="website">Live website</option><option value="folder">Local folder</option></select><button type="button" id="browseGoogle">Open Google Images</button><div id="siteField" hidden><label for="site">Original website or image URL</label><input id="site" type="url" placeholder="https://www.nasa.gov/"><p class="note">Searches image captures under this URL. Custom mode searches this website. Genre mode automatically searches a curated set of relevant sites.</p></div><button class="primary wide" id="excavate">Excavate fragments</button><p class="note" id="dateNote">Internet Archive uses the work’s publication/creation date. Wayback uses its capture date. Genre collections merge both into one fragment deck, with actual dates shown.</p><div class="rule"><div class="eyebrow">THE IMPULSE</div><label for="driver">Motion source</label><select id="driver"><option value="drift">Free drift</option><option value="mic">Live microphone</option><option value="audio">Audio impulses</option><option value="midi">MIDI input</option></select><button id="micButton" class="wide">Mic off</button><label class="file-label">Load audio or video sound<input id="audioFile" type="file" accept="audio/*,video/*"></label><audio id="audio" controls preload="metadata"></audio><p class="note" id="audioName">Audio stays on your device. Tap Play after loading.</p><button class="wide" id="connectMidi">Connect MIDI</button><select id="midiDevices" aria-label="MIDI input device" hidden></select><p class="note" id="midiNote">Notes select fragments. CC1 blends, CC74 warps. A connected controller and Chrome MIDI permission are required.</p></div><details class="rule"><summary>Local images & session import</summary><label class="file-label">Add photos or videos<input id="images" type="file" multiple accept="image/*,video/*"></label><label class="file-label">Restore session JSON<input id="import" type="file" accept="application/json,.json"></label><p class="note">Local files remain local. Save session stores settings and archive references, not local images or audio.</p></details><details><summary>How this instrument works</summary><div class="help"><p>Free drift slowly moves through fragments. Audio mode measures bass energy and transients; stronger impulses advance the image pair. MIDI notes choose images by note number, CC1 scrubs the transition, and CC74 sets distortion.</p><p>Morphing combines crossfades, blend modes, and displaced scanline slices. It is a real-time collage, not an AI semantic interpolation.</p><p>Exact-day searches may return nothing. Increase the radius explicitly; dates are never silently widened. Archive services may be slow, unavailable, or restrict some captures.</p><p>The first display is a synthetic demo. Use Excavate to replace it with actual archived images. Source links below the stage provide provenance; check those sources before reusing work.</p></div></details></aside>
 <section class="workspace"><section id="typePanel" class="type-panel" hidden>
  <div class="type-heading"><h2>Type fragments</h2><button type="button" id="closeType">Back to deck</button></div>
  <div class="type-composer">
@@ -78,7 +84,13 @@ button.knob-card{display:grid;grid-template-columns:30px 1fr;grid-template-rows:
   </div>
  </div>
 </section>
-<section id="radioPanel" hidden><h2>Viewfinder</h2><button id="pairButton">Pair random field recording</button><p id="pairStatus">Radio Aporee field recordings paired with media from the tagged location.</p><a id="fieldLink" hidden target="_blank" rel="noopener">Recording &amp; license</a></section><div class="find-controls"><details><summary id="rangeLabel">Fragment count</summary><div class="count-inputs"><label>Minimum <input id="fragmentMin" type="number" min="1" max="48" step="1"></label><label>Maximum <input id="fragmentMax" type="number" min="1" max="48" step="1"></label></div><small>Each search picks a target between these values.</small><button id="resetFragmentRange" type="button">Reset to 10–50</button></details><label class="media-mode">Media to find <select id="mediaMode"><option value="photos">Photos</option><option value="videos">Videos</option><option value="both">Both</option></select></label><label id="abstractSearchControl" hidden><input type="checkbox" id="abstractSearch"> Abstract search</label><button id="cancelFind" type="button" hidden>Cancel search</button></div><div class="performance"><div><div class="eyebrow">LIVE CANVAS</div><h2 id="performanceTitle">Live canvas</h2></div><span class="pill" id="fragmentCount">DEMO MODE</span></div><div class="file-transport" role="group" aria-label="Audio file playback"><button type="button" id="playFile" disabled>Play</button><button type="button" id="stopFile" disabled>Stop</button><button type="button" id="restoreFragmentAudio" hidden>Restore previous audio</button><button type="button" id="recordClip" aria-pressed="false">Record</button><label><input type="checkbox" id="loopFile"> Loop audio</label><details class="rec-settings"><summary>Rec trigger</summary><label>Start recording <select id="recTrigger"><option value="immediate">Immediately</option><option value="armed">On playback or mic input</option></select></label><label id="recThresholdField" hidden>Mic threshold (%) <input type="number" id="recThreshold" min="1" max="100" step="1"></label></details><button id="shareClip" hidden>Share clip</button><small id="clipStatus" role="status"></small></div><div class="stage-wrap" id="stageWrap"><canvas id="stage" aria-label="Reactive image collage"></canvas><button type="button" id="overlayToggle" aria-label="Hide playback text" aria-pressed="false"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12Q12 -2 22 12Q12 26 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3L21 21"/></svg></button><div class="stage-top"><span id="stageOrigin">SYNTHETIC DEMO · NOT ARCHIVED</span><span id="driverLabel">FREE DRIFT</span></div><div class="stage-bottom"><p id="caption">Choose a date and excavate to find real archive fragments.</p><button id="fullscreen">Fullscreen</button></div></div><details id="searchTerms" hidden><summary>Search terms tried</summary><ol id="searchTermsList"></ol></details><p id="status" role="status" aria-live="polite">The canvas is ready. Start with a date and your seed words.</p><div class="transport"><button id="freeze">Freeze</button><button id="next">Next fragment</button><button id="snapshot">Save image</button><div class="meter" role="meter" aria-label="Audio impulse strength" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter"><i id="energy"></i></div></div><div class="look-buttons"><button type="button" class="primary" id="scramble">Scramble</button><button id="shuffleFx">Shuffle FX</button><button id="defaultFx">Default</button><small>Hold a knob, then drag.</small></div><button type="button" id="mutateMorph" title="Regenerate the organic shape">Mutate morph</button><label for="effect">Morph style</label><select id="effect"><option>Scanlines</option><option>Kaleidoscope</option><option>Echo tunnel</option><option>Tidal ripple</option><option>Crossfade</option></select><div id="rack"></div><div class="control-grid"><div><label for="morph">Morph <output id="morphValue">0%</output></label><input id="morph" type="range" min="0" max="1" step=".001" value="0"></div><div><label for="warp">Warp <output id="warpValue">25%</output></label><input id="warp" type="range" min="0" max="1" step=".01" value=".25"></div><div><label for="sensitivity">Sensitivity <output id="sensitivityValue">50%</output></label><input id="sensitivity" type="range" min="0" max="1" step=".01" value=".5"></div></div><div class="rule"><div class="deck-heading"><div class="eyebrow">FRAGMENT DECK</div><button type="button" id="shuffleDeck" disabled>Shuffle deck</button></div><div class="strip" id="assets"><p class="muted">Your retrieved images will appear here.</p></div><details><summary id="provenanceSummary">Sources & actual dates</summary><div class="source-list" id="sources"><p>No archive material loaded yet. The demo is generated geometry.</p></div></details></div><div class="foot"><span>PAST MATERIAL / PRESENT TENSE</span><span>Audio & local files stay on this device.</span></div></section></main>
+<section id="radioPanel" hidden><h2>Viewfinder</h2><button id="pairButton">Pair random field recording</button><p id="pairStatus">Radio Aporee field recordings paired with media from the tagged location.</p><a id="fieldLink" hidden target="_blank" rel="noopener">Recording &amp; license</a></section><div class="find-controls"><details><summary id="rangeLabel">Fragment count</summary><div class="count-inputs"><label>Minimum <input id="fragmentMin" type="number" min="1" max="48" step="1"></label><label>Maximum <input id="fragmentMax" type="number" min="1" max="48" step="1"></label></div><small>Each search picks a target between these values.</small><button id="resetFragmentRange" type="button">Reset to 10–50</button></details><label class="media-mode">Media to find <select id="mediaMode"><option value="photos">Photos</option><option value="videos">Videos</option><option value="both">Both</option></select></label><label id="abstractSearchControl" hidden><input type="checkbox" id="abstractSearch"> Abstract search</label><button id="cancelFind" type="button" hidden>Cancel search</button></div><div class="performance"><div><div class="eyebrow">LIVE CANVAS</div><h2 id="performanceTitle">Live canvas</h2></div><span class="pill" id="fragmentCount">DEMO MODE</span></div><div class="file-transport" role="group" aria-label="Audio file playback"><button type="button" id="playFile" disabled>Play</button><button type="button" id="stopFile" disabled>Stop</button><button type="button" id="restoreFragmentAudio" hidden>Restore previous audio</button><button type="button" id="recordClip" aria-pressed="false">Record</button><label><input type="checkbox" id="loopFile"> Loop audio</label><details class="rec-settings"><summary>Rec trigger</summary><label>Start recording <select id="recTrigger"><option value="immediate">Immediately</option><option value="armed">On playback or mic input</option></select></label><label id="recThresholdField" hidden>Mic threshold (%) <input type="number" id="recThreshold" min="1" max="100" step="1"></label></details><button id="shareClip" hidden>Share clip</button><small id="clipStatus" role="status"></small></div><div class="stage-wrap" id="stageWrap"><canvas id="stage" aria-label="Reactive image collage"></canvas><button type="button" id="overlayToggle" aria-label="Hide playback text" aria-pressed="false"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12Q12 -2 22 12Q12 26 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3L21 21"/></svg></button><div class="stage-top"><span id="stageOrigin">SYNTHETIC DEMO · NOT ARCHIVED</span><span id="driverLabel">FREE DRIFT</span></div><div class="stage-bottom"><p id="caption">Choose a date and excavate to find real archive fragments.</p><button id="fullscreen">Fullscreen</button></div></div><details id="searchTerms" hidden><summary>Search terms tried</summary><ol id="searchTermsList"></ol></details><p id="status" role="status" aria-live="polite">The canvas is ready. Start with a date and your seed words.</p><div class="transport"><button id="freeze">Freeze</button><button id="next">Next fragment</button>
+ <details class="tempo-settings"><summary id="tempoSummary">Tempo sync</summary><div class="tempo-fields">
+ <label><input type="checkbox" id="tempoSync"> Sync fragments to tempo</label>
+ <label>BPM <input type="number" min="20" max="400" step="1" value="120" id="tempoBpm"></label>
+ <label>Division <select id="tempoDivision"><option value="1/32">1/32</option><option value="1/24">1/24</option><option value="1/16">1/16</option><option value="3/32">3/32</option><option value="1/12">1/12</option><option value="1/8">1/8</option><option value="1/6">1/6</option><option value="3/16">3/16</option><option value="1/4">1/4</option><option value="3/12">3/12</option><option value="1/3">1/3</option><option value="3/8">3/8</option><option value="1/2">1/2</option><option value="3/4">3/4</option><option value="1/1">1/1</option><option value="custom">Custom</option></select></label>
+ <label id="tempoCustomField" hidden>Fraction <input id="tempoCustom" value="5/16" maxlength="7" placeholder="5/16"></label>
+ </div></details><button id="snapshot">Save image</button><div class="meter" role="meter" aria-label="Audio impulse strength" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter"><i id="energy"></i></div></div><div class="look-buttons"><button type="button" class="primary" id="scramble">Scramble</button><button id="shuffleFx">Shuffle FX</button><button id="defaultFx">Default</button><small>Hold a knob, then drag.</small></div><button type="button" id="mutateMorph" title="Regenerate the organic shape">Mutate morph</button><label for="effect">Morph style</label><select id="effect"><option>Scanlines</option><option>Kaleidoscope</option><option>Echo tunnel</option><option>Tidal ripple</option><option>Crossfade</option></select><div id="rack"></div><div class="control-grid"><div><label for="morph">Morph <output id="morphValue">0%</output></label><input id="morph" type="range" min="0" max="1" step=".001" value="0"></div><div><label for="warp">Warp <output id="warpValue">25%</output></label><input id="warp" type="range" min="0" max="1" step=".01" value=".25"></div><div><label for="sensitivity">Sensitivity <output id="sensitivityValue">50%</output></label><input id="sensitivity" type="range" min="0" max="1" step=".01" value=".5"></div></div><div class="rule"><div class="deck-heading"><div class="eyebrow">FRAGMENT DECK</div><button type="button" id="shuffleDeck" disabled>Shuffle deck</button></div><div class="strip" id="assets"><p class="muted">Your retrieved images will appear here.</p></div><details><summary id="provenanceSummary">Sources & actual dates</summary><div class="source-list" id="sources"><p>No archive material loaded yet. The demo is generated geometry.</p></div></details></div><div class="foot"><span>PAST MATERIAL / PRESENT TENSE</span><span>Audio & local files stay on this device.</span></div></section></main>
 <script src="/archive.js"></script><script>
 'use strict';
 const $=id=>document.getElementById(id), canvas=$('stage'), ctx=canvas.getContext('2d',{alpha:false});
@@ -94,10 +106,10 @@ new ResizeObserver(dimensions).observe(canvas);
 function demo(index){const c=document.createElement('canvas');c.width=960;c.height=720;const d=c.getContext('2d');const colors=[['#183831','#658d61','#c2e39e'],['#313943','#aba997','#d5e4ad'],['#35312a','#779b83','#d3ca99']][index];d.fillStyle=colors[0];d.fillRect(0,0,960,720);const grad=d.createRadialGradient(480,250,5,480,300,600);grad.addColorStop(0,colors[1]);grad.addColorStop(1,colors[0]);d.fillStyle=grad;d.fillRect(0,0,960,720);d.globalAlpha=.55;for(let i=0;i<12;i++){const x=60+i*76;d.fillStyle=i%2?colors[0]:colors[2];d.fillRect(x,100+Math.sin(i*.7+index)*90,43,650);d.strokeStyle=colors[1];d.beginPath();d.moveTo(0,100+i*48);d.lineTo(960,30+i*67);d.stroke();}d.globalAlpha=.45;d.strokeStyle=colors[2];d.lineWidth=2;for(let i=0;i<9;i++){d.beginPath();d.ellipse(500,350,60+i*33,80+i*23,index*.2,0,Math.PI*2);d.stroke();}d.globalAlpha=.8;d.font='12px monospace';d.fillStyle=colors[2];if(!document.documentElement.classList.contains('stage-fullscreen')&&!document.getElementById('stageWrap').classList.contains('clean'))d.fillText('SYNTHETIC FIELD / '+(index+1),40,660);return c;}
 let demos=[demo(0),demo(1),demo(2)];
 function deck(){return assets.length?assets.map(fragmentFrame):demos;}
-function choose(index){const n=deck().length;if(n<2){a=b=0;morph=0;return;}a=morph>.5?b:a;b=((index%n)+n)%n;if(a===b)b=(b+1)%n;morph=0;manual=false;lastDrift=performance.now();}
+function choose(index){tempoClock.reset();const n=deck().length;if(n<2){a=b=0;morph=0;return;}a=morph>.5?b:a;b=((index%n)+n)%n;if(a===b)b=(b+1)%n;morph=0;manual=false;lastDrift=performance.now();}
 $('next').onclick=()=>choose((b+1)%deck().length);
 $('morph').oninput=()=>{manual=true;morph=Number($('morph').value);};
-$('freeze').onclick=()=>{frozen=!frozen;$('freeze').textContent=frozen?'Resume':'Freeze';$('freeze').setAttribute('aria-pressed',String(frozen));};
+$('freeze').onclick=()=>{frozen=!frozen;if(frozen)tempoClock.pause(performance.now());$('freeze').textContent=frozen?'Resume':'Freeze';$('freeze').setAttribute('aria-pressed',String(frozen));};
 $('driver').onchange=()=>{lastDrift=performance.now();manual=false;$('driverLabel').textContent=$('driver').selectedOptions[0].text.toUpperCase();};
 function drawCover(img,alpha,offset,t){if(drawTransition(document.getElementById("effect").value,img,alpha,offset,t))return;const w=canvas.width,h=canvas.height,iw=img.videoWidth||img.naturalWidth||img.width,ih=img.videoHeight||img.naturalHeight||img.height;if(!iw||!ih)return;const scale=Math.max(w/iw,h/ih)*1.05;const dw=iw*scale,dh=ih*scale;ctx.globalAlpha=alpha;const warp=Number($('warp').value);const style=$('effect').value, power=warp*(.25+energy);
 if(style==='Crossfade'){ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh);return;}
@@ -463,7 +475,7 @@ function frame(ms){if(frozen)syncFragmentPlayers();checkClipGate();dimensions();
  if(reactive)energy=Math.min(1,motion.level+motion.pulse*.35);else energy*=.94;
  const motionDelta=delta*motion.speed;
  $('energy').style.width=Math.round(energy*100)+'%';$('meter').setAttribute('aria-valuenow',String(Math.round(energy*100)));
- if(!frozen){const motionTime=rack.advance(delta*(motion.fxSpeed??motion.speed));const driver=$('driver').value;if(!manual){if(driver==='drift'||reactive){morph+=motionDelta*(reactive?.32:.075)*rack.state.morphRate;if(morph>=1){a=b;b=(b+1)%deck().length;morph=0;}}else morph=Math.min(1,morph+delta*(.35+energy*1.4)*rack.state.morphRate);}
+ const tempoDriven=updateFragmentTempo(ms);if(!frozen){const motionTime=rack.advance(delta*(motion.fxSpeed??motion.speed));const driver=$('driver').value;if(!tempoDriven&&!manual){if(driver==='drift'||reactive){morph+=motionDelta*(reactive?.32:.075)*rack.state.morphRate;if(morph>=1){a=b;b=(b+1)%deck().length;morph=0;}}else morph=Math.min(1,morph+delta*(.35+energy*1.4)*rack.state.morphRate);}
  syncFragmentPlayers();const images=deck();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.fillStyle='#07100c';ctx.fillRect(0,0,canvas.width,canvas.height);
  const organic=drawOrganicMorph(images[a%images.length],images[b%images.length],morph,motionTime,motion);
  if(!organic){drawCover(images[a%images.length],1,0,motionTime);ctx.globalCompositeOperation='screen';drawCover(images[b%images.length],morph,2,motionTime);}ctx.globalCompositeOperation='source-over';if(!defaultLook&&!organic){ctx.globalAlpha=.08;ctx.fillStyle='hsl('+185+',45%,50%)';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.globalAlpha=.08;ctx.fillStyle='#030d08';for(let y=0;y<canvas.height;y+=4)ctx.fillRect(0,y,canvas.width,1);}ctx.globalAlpha=1;rack.process(ctx,images,delta,motion);}
@@ -480,9 +492,9 @@ function showAssets(start=0,preserveStage=false){reconcileFragmentDeck();deckShu
    if(asset.kind==='video'){
      const use=document.createElement('button');use.type='button';use.className='use-fragment-audio';
      use.textContent='Use audio';use.setAttribute('aria-label','Use audio from '+asset.title);use.onclick=()=>useFragmentAudio(asset);
-     cell.append(use);
+     cell.append(use);if(!asset.liveStream)cell.append(videoStartControl(asset));
    }cell.prepend(deckHandle(asset,cell));$('assets').append(cell);const source=document.createElement('div');if(asset.link){const link=document.createElement('a');link.href=asset.link;link.target='_blank';link.rel='noopener noreferrer';link.textContent=asset.title;source.append(link);}else source.textContent=asset.title;const meta=document.createElement('p');meta.textContent=asset.source+' · '+asset.date;source.append(meta);$('sources').append(source);});
- $('fragmentCount').textContent=assets.length+' FRAGMENTS';$('stageOrigin').textContent=vf.active&&vf.pair?'VIEWFINDER':assets.some(x=>x.source==='Local file')?'LOCAL MEDIA':assets.some(x=>x.source==='Website')?'LIVE WEBSITE':assets.some(x=>x.source==='Wikimedia Commons')?'VIEWFINDER':(assets.length&&assets.every(x=>x.kind==='type')?'CUSTOM TYPE':'ARCHIVED MATERIAL');if(!preserveStage&&!start){a=0;b=assets.length>1?1:0;morph=0;manual=false;}else if(start===1){b=1;morph=0;}
+ $('fragmentCount').textContent=assets.length+' FRAGMENTS';$('stageOrigin').textContent=vf.active&&vf.pair?'VIEWFINDER':assets.some(x=>x.source==='Local file')?'LOCAL MEDIA':assets.some(x=>x.source==='Website')?'LIVE WEBSITE':assets.some(x=>x.source==='Wikimedia Commons')?'VIEWFINDER':(assets.length&&assets.every(x=>x.kind==='type')?'CUSTOM TYPE':'ARCHIVED MATERIAL');if(!preserveStage&&!start){tempoClock.reset();a=0;b=assets.length>1?1:0;morph=0;manual=false;}else if(start===1){b=1;morph=0;}
 }
 function emblemMask(image){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
@@ -530,6 +542,8 @@ const MAX_FRAGMENTS=512;
 const PREVIEW_EDGE=256;
 const committedLocalFragments=new Set();
 let videoBackgrounded=false;
+let previousIncomingFragment;
+const videoStartOptions=[['resume','Resume'],['beginning','Beginning'],['random','Random point']];
 function makeFragmentVideo(){
  const video=document.createElement('video');
  video.muted=true;video.defaultMuted=true;video.playsInline=true;video.loop=true;video.preload='auto';
@@ -618,16 +632,40 @@ function retireVideo(item,video){
  }
  detachVideo(video);videoPlayers.delete(item);
 }
+function videoStartMode(item){
+ return item.videoStart==='beginning'||item.videoStart==='random'?item.videoStart:'resume';
+}
+function videoStartTime(item,duration,random=Math.random){
+ const mode=videoStartMode(item);
+ if(mode==='random')return random()*Math.max(0,duration-Math.min(.2,duration*.1));
+ if(mode==='resume'&&item.resumeAt>0&&item.resumeAt<duration)return item.resumeAt;
+ return 0;
+}
+function beginVideoPass(item,video){
+ if(item.liveStream||!Number.isFinite(video.duration)||video.duration<=0)return;
+ const start=videoStartTime(item,video.duration);
+ if(video.currentTime!==start)video.currentTime=start;
+}
+function updateFragmentVideoLoop(item,video){
+ video.loop=videoStartMode(item)!=='random'||!Number.isFinite(video.duration)||video.duration<=0;
+}
 function openFragmentVideo(item){
  const video=preparedVideos.get(item)||makeFragmentVideo();
  preparedVideos.delete(item);
  videoPlayers.set(item,video);
- video.onloadedmetadata=()=>{
+ const configure=()=>{
    if(videoPlayers.get(item)!==video)return;
-   if(!item.liveStream&&item.resumeAt>0&&item.resumeAt<video.duration)video.currentTime=item.resumeAt;
+   updateFragmentVideoLoop(item,video);
+   beginVideoPass(item,video);
+ };
+ video.onloadedmetadata=configure;
+ video.onended=()=>{
+   if(videoPlayers.get(item)!==video||videoStartMode(item)!=='random'||video.loop)return;
+   beginVideoPass(item,video);
  };
  if(item.liveStream)video.srcObject=item.liveStream;
- else if(video.getAttribute('src')!==item.image)video.src=item.image;
+ else if(video.getAttribute('src')===item.image&&video.readyState>=1)configure();
+ else video.src=item.image;
  return video;
 }
 function resumeFragmentVideo(video){
@@ -652,9 +690,25 @@ function syncFragmentPlayers(){
    else if(!enabled&&!video.paused)video.pause();
  }
  if(!enabled)return;
+ const incoming=videoPlayers.get(second);
+ if(incoming&&second!==first&&second!==previousIncomingFragment&&videoStartMode(second)!=='resume')beginVideoPass(second,incoming);
+ previousIncomingFragment=second;
  for(const item of [first,second]){
    if(item?.kind==='video')resumeFragmentVideo(videoPlayers.get(item)||openFragmentVideo(item));
  }
+}
+function videoStartControl(item){
+ const label=document.createElement('label');label.className='fragment-video-start';label.textContent='Video start';
+ const select=document.createElement('select');select.setAttribute('aria-label','Video start for '+item.title);
+ for(const [value,title] of videoStartOptions)select.add(new Option(title,value));
+ select.value=videoStartMode(item);
+ select.onchange=()=>{
+   item.videoStart=select.value;
+   const video=videoPlayers.get(item);
+   if(video)updateFragmentVideoLoop(item,video);
+ };
+ label.append(select);
+ return label;
 }
 function fragmentFrame(item){
  const video=videoPlayers.get(item);
@@ -795,7 +849,7 @@ async function gatherArchiveByCount(){
  try{
    const query=new URLSearchParams({date:$('date').value,window:$('window').value,source,genre:$('genre').value,site:$('site').value,words:$('words').value,media});
    for(const k of types)query.set(k,$(k).value);
-   const pages=$('abstractSearch').checked?abstractSearchPages(query,token):searchAllPages(query);
+   const pages=$('abstractSearch').checked?abstractSearchPages(query,token):searchAllPages(query,token);
    const result=await collectFragments(pages,token,target,media,progressiveDeck());
    if(!result||token!==searchToken)return;
    report(fragmentResultText(result.loaded.length,target,result.issue));
@@ -854,8 +908,8 @@ function midiMessage(input,event){if(input.id!==$('midiDevices').value||$('drive
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('stageWrap').requestFullscreen();}catch{report('Fullscreen is unavailable in this browser.');}};
 async function download(blob,name){const reader=new FileReader();reader.onload=()=>Mic.save(name,reader.result.split(',')[1]);reader.readAsDataURL(blob);return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 $('snapshot').onclick=()=>{try{canvas.toBlob(blob=>{if(blob)download(blob,'temporal-loom-'+$('date').value+'.png');else report('Could not export this image.');},'image/png');}catch{report('This source prevented image export. Try other archive images or local files.');}};
-$('save').onclick=()=>{const session={typeFonts:exportTypeFonts(),mediaMode:mediaMode(),abstractSearch:$("abstractSearch").checked,organicSeed,fragmentRange:readFragmentRange(),defaultLook,rack:rack.save(),mix:Object.fromEntries(types.map(k=>[k,$(k).value])),words:$('words').value,effect:$('effect').value,version:1,date:$('date').value,window:$('window').value,source:$('source').value,genre:$('genre').value,site:['website','wayback-site'].includes($('source').value)?$('site').value:'',warp:Number($('warp').value),sensitivity:Number($('sensitivity').value),assets:assets.filter(x=>x.source!=='Local file').map(({title,date,source,link,image,audio,kind,typeSpec})=>kind==="type"?{title,date,source,kind,typeSpec}:{title,date,source,link,image,audio,kind})};download(new Blob([JSON.stringify(session,null,2)],{type:'application/json'}),'temporal-loom-session.json');report('Session saved. Local image and audio files are not included.');};
-$('import').onchange=async event=>{const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024){report('Session file is too large.');return;}try{const data=JSON.parse(await file.text());if(data.version!==1||!Array.isArray(data.assets)||data.assets.length>MAX_FRAGMENTS)throw Error('Not a supported session file.');if(!/^\d{4}-\d{2}-\d{2}$/.test(data.date))throw Error('Invalid session date.');for(const item of data.assets){if(validTypeReference(item)||validVideoReference(item)||validSearchReference(item)||validLiveReference(item)||validCommonsReference(item))continue;if(typeof item.image!=='string'||!item.image.startsWith('/api/image?')||!['Internet Archive','Wayback'].includes(item.source)||typeof item.title!=='string'||typeof item.date!=='string'||typeof item.link!=='string'||!/^https:\/\/(?:archive\.org|web\.archive\.org)\//.test(item.link))throw Error('Session has unsupported image references.');}const token=++searchToken;$('excavate').disabled=false;await restoreTypeFonts(data.typeFonts);if(data.mediaMode||typeof data.videoMode==="boolean")setMediaMode(data.mediaMode,data.videoMode);if(typeof data.abstractSearch==="boolean")setAbstractSearch(data.abstractSearch);if(Number.isFinite(data.organicSeed))organicSeed=data.organicSeed;if(data.fragmentRange)setFragmentRange(data.fragmentRange);markDefault(Boolean(data.defaultLook));rack.restore(data.rack);$('words').value=String(data.words||'').slice(0,160);$('effect').value=data.effect||'Scanlines';for(const k of types)$(k).value=data.mix?.[k]??50;$('date').value=data.date;$('window').value=String(data.window);$('source').value=['blended','ia','wayback','wayback-site','website','folder','google','wikipedia','nasa','peertube','commons-video','ia-video'].includes(data.source)?data.source:'blended';$('genre').value=Array.from($('genre').options).some(o=>o.value===data.genre)?data.genre:'none';$('source').onchange();$('site').value=String(data.site||'');for(const key of ['warp','sensitivity'])if(Number.isFinite(data[key]))$(key).value=Math.max(0,Math.min(1,data[key]));updateOutputs();const result=await loadImages(data.assets,token);if(result&&token===searchToken){assets=result.loaded;if(assets.length)showAssets();report('Session settings restored. '+assets.length+' images available; choose your audio file again.');}}catch(error){report(error.message||'Could not load this session.');}};
+$('save').onclick=()=>{const session={tempo:tempoSettings,typeFonts:exportTypeFonts(),mediaMode:mediaMode(),abstractSearch:$("abstractSearch").checked,organicSeed,fragmentRange:readFragmentRange(),defaultLook,rack:rack.save(),mix:Object.fromEntries(types.map(k=>[k,$(k).value])),words:$('words').value,effect:$('effect').value,version:1,date:$('date').value,window:$('window').value,source:$('source').value,genre:$('genre').value,site:['website','wayback-site'].includes($('source').value)?$('site').value:'',warp:Number($('warp').value),sensitivity:Number($('sensitivity').value),assets:assets.filter(x=>x.source!=='Local file').map(({title,date,source,link,image,audio,kind,typeSpec,videoStart})=>kind==="type"?{title,date,source,kind,typeSpec}:{title,date,source,link,image,audio,kind,videoStart})};download(new Blob([JSON.stringify(session,null,2)],{type:'application/json'}),'temporal-loom-session.json');report('Session saved. Local image and audio files are not included.');};
+$('import').onchange=async event=>{const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024){report('Session file is too large.');return;}try{const data=JSON.parse(await file.text());if(data.version!==1||!Array.isArray(data.assets)||data.assets.length>MAX_FRAGMENTS)throw Error('Not a supported session file.');if(!/^\d{4}-\d{2}-\d{2}$/.test(data.date))throw Error('Invalid session date.');for(const item of data.assets){if(validTypeReference(item)||validVideoReference(item)||validSearchReference(item)||validLiveReference(item)||validCommonsReference(item))continue;if(typeof item.image!=='string'||!item.image.startsWith('/api/image?')||!['Internet Archive','Wayback'].includes(item.source)||typeof item.title!=='string'||typeof item.date!=='string'||typeof item.link!=='string'||!/^https:\/\/(?:archive\.org|web\.archive\.org)\//.test(item.link))throw Error('Session has unsupported image references.');}const token=++searchToken;$('excavate').disabled=false;await restoreTypeFonts(data.typeFonts);restoreTempo(data.tempo);if(data.mediaMode||typeof data.videoMode==="boolean")setMediaMode(data.mediaMode,data.videoMode);if(typeof data.abstractSearch==="boolean")setAbstractSearch(data.abstractSearch);if(Number.isFinite(data.organicSeed))organicSeed=data.organicSeed;if(data.fragmentRange)setFragmentRange(data.fragmentRange);markDefault(Boolean(data.defaultLook));rack.restore(data.rack);$('words').value=String(data.words||'').slice(0,160);$('effect').value=data.effect||'Scanlines';for(const k of types)$(k).value=data.mix?.[k]??50;$('date').value=data.date;$('window').value=String(data.window);$('source').value=['blended','ia','wayback','wayback-site','website','folder','google','wikipedia','nasa','peertube','commons-video','ia-video'].includes(data.source)?data.source:'blended';$('genre').value=Array.from($('genre').options).some(o=>o.value===data.genre)?data.genre:'none';$('source').onchange();$('site').value=String(data.site||'');for(const key of ['warp','sensitivity'])if(Number.isFinite(data[key]))$(key).value=Math.max(0,Math.min(1,data[key]));updateOutputs();const result=await loadImages(data.assets,token);if(result&&token===searchToken){assets=result.loaded;if(assets.length)showAssets();report('Session settings restored. '+assets.length+' images available; choose your audio file again.');}}catch(error){report(error.message||'Could not load this session.');}};
 addEventListener('beforeinstallprompt',event=>{event.preventDefault();installEvent=event;});
 $('install').onclick=async()=>{if(installEvent){await installEvent.prompt();installEvent=null;}else report('On Android: open Chrome’s menu, choose Add to Home screen, then Install. This is a web app, not an APK.');};
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -1537,21 +1591,28 @@ function removeFragment(index){
  rack.clearHistory();report('Removed '+removed.title+' from the deck.');
 }
 
-let googleSequence=0, resolveGoogle=null;
+let googleSequence=0, pendingGoogle=null, googleQueue=Promise.resolve();
 function googleResult(id,items,issue){
- if(id!==googleSequence||!resolveGoogle)return;
- const finish=resolveGoogle;resolveGoogle=null;finish({items,issue});
+ if(pendingGoogle?.id===id)pendingGoogle.finish({items,issue});
 }
-async function* googlePages(terms){
- const seen=new Set();
- for(let offset=0;;offset+=20){
-   if(resolveGoogle)googleResult(googleSequence,[],'Search superseded.');
-   const id=++googleSequence;
-   const page=await new Promise(resolve=>{
+function requestGooglePage(terms,offset,token){
+ if(pendingGoogle&&pendingGoogle.token!==token)googleResult(pendingGoogle.id,[]);
+ googleQueue=googleQueue.then(()=>{
+   if(token!==searchToken)return {items:[]};
+   return new Promise(resolve=>{
+     const id=++googleSequence;
      const timer=setTimeout(()=>googleResult(id,[],'Google Images timed out.'),16000);
-     resolveGoogle=result=>{clearTimeout(timer);resolve(result);};
-     Mic.googleSearch(id,terms,offset);
+     pendingGoogle={id,token,finish(result){clearTimeout(timer);pendingGoogle=null;resolve(result);}};
+     try{Mic.googleSearch(id,terms,offset);}
+     catch{googleResult(id,[],'Google Images unavailable.');}
    });
+ });
+ return googleQueue;
+}
+async function* googlePages(terms,token){
+ const seen=new Set();
+ for(let offset=0;token===searchToken;offset+=20){
+   const page=await requestGooglePage(terms,offset,token);
    const items=page.items.filter(item=>{if(seen.has(item.image))return false;seen.add(item.image);return true;});
    yield {items,issue:page.issue};if(!items.length)return;
  }
@@ -1583,24 +1644,39 @@ async function* wikiRandomPages(){
    if(!fresh)return;
  }
 }
-function searchAllPages(query){
+function splitSeedTerms(value){
+ const seen=new Set();
+ return (value||'').split(',').map(phrase=>phrase.trim()).filter(phrase=>{
+   const key=phrase.toLowerCase().replace(/\s+/g,' ');
+   if(!key||seen.has(key))return false;
+   seen.add(key);return true;
+ });
+}
+function searchAllPages(query,token=searchToken){
+ const terms=splitSeedTerms(query.get('words'));
+ if(terms.length<2)return searchTermPages(query,terms[0]||'',token);
+ return mergeSearchPages(terms.map(term=>searchTermPages(query,term,token)),{mixKinds:false,parallel:4,token});
+}
+function searchTermPages(query,seed,token){
  const source=query.get('source'),media=query.get('media');
- const words=query.get('words').split(',').map(t=>t.trim()).filter(Boolean);
- const terms=words.join(' ')||(query.get('genre')==='none'?'':$('genre').selectedOptions[0].text);
- const videoTerms=[...new Set([terms,...words])];
+ const terms=seed||(query.get('genre')==='none'?'':$('genre').selectedOptions[0].text);
  const streams=[];
  if(media!=='photos'){
-   if(['blended','nasa'].includes(source))streams.push(videoCatalogPages(nasaVideoPages,videoTerms));
-   if(['blended','peertube'].includes(source))streams.push(videoCatalogPages(peerTubeVideoPages,videoTerms));
-   if(['blended','wikipedia','commons-video'].includes(source))streams.push(videoCatalogPages(commonsVideoPages,videoTerms));
-   if(source==='ia-video')streams.push(videoCatalogPages(archiveVideoCatalogPages,videoTerms));
+   if(['blended','nasa'].includes(source))streams.push(nasaVideoPages(terms));
+   if(['blended','peertube'].includes(source))streams.push(peerTubeVideoPages(terms));
+   if(['blended','wikipedia','commons-video'].includes(source))streams.push(commonsVideoPages(terms));
+   if(source==='ia-video')streams.push(archiveVideoCatalogPages(terms));
  }
  if(media!=='videos'){
-   if(['blended','google'].includes(source))streams.push(googlePages(terms||'photography art landscape history people'));
+   if(['blended','google'].includes(source))streams.push(googlePages(terms||'photography art landscape history people',token));
    if(['blended','wikipedia'].includes(source))streams.push(terms?wikiPages(terms):wikiRandomPages());
  }
- if(!['google','wikipedia','nasa','peertube','commons-video','ia-video'].includes(source))streams.push(archivePages(query));
- return mergeSearchPages(streams);
+ if(!['google','wikipedia','nasa','peertube','commons-video','ia-video'].includes(source)){
+   const archiveQuery=new URLSearchParams(query);
+   archiveQuery.set('words',seed);
+   streams.push(archivePages(archiveQuery));
+ }
+ return mergeSearchPages(streams,{token});
 }
 function mixMedia(items,videoFirst=false){
  const photos=[],videos=[];
@@ -1609,10 +1685,16 @@ function mixMedia(items,videoFirst=false){
  for(let n=0;n<Math.max(photos.length,videos.length);n++)for(const group of groups)if(group[n])mixed.push(group[n]);
  return mixed;
 }
-async function* mergeSearchPages(streams){
+async function* mergeSearchPages(streams,{mixKinds=true,parallel=streams.length,token=searchToken}={}){
  let previewed=false,videoFirst=false;
- while(streams.length){
-   const reads=streams.map(stream=>stream.next());
+ while(streams.length&&token===searchToken){
+   const lanes=Array(Math.min(parallel,streams.length)).fill(Promise.resolve());
+   const reads=streams.map((stream,index)=>{
+     const lane=index%lanes.length;
+     const read=lanes[lane].then(()=>token===searchToken?stream.next():{done:true});
+     lanes[lane]=read.catch(()=>{});
+     return read;
+   });
    const settled=Promise.allSettled(reads);
    let preview;
    if(!previewed&&reads.length>1){
@@ -1621,6 +1703,7 @@ async function* mergeSearchPages(streams){
        if(value?.items.length)return value;
        throw Error('No candidates in this page.');
      })).catch(()=>null);
+     if(token!==searchToken)return;
      if(preview){
        previewed=true;
        videoFirst=preview.items[0].kind!=='video';
@@ -1628,6 +1711,7 @@ async function* mergeSearchPages(streams){
      }
    }
    const batches=await settled;
+   if(token!==searchToken)return;
    const groups=[],issues=[];let dates;
    for(let i=batches.length-1;i>=0;i--){
      const row=batches[i];
@@ -1636,7 +1720,7 @@ async function* mergeSearchPages(streams){
      const page=row.value.value;groups.unshift(page===preview?page.items.slice(1):page.items);if(page.issue)issues.push(page.issue);if(page.dates)dates=page.dates;
    }
    const items=[];for(let n=0;groups.some(group=>group.length>n);n++)for(const group of groups)if(group[n])items.push(group[n]);
-   const mixed=mixMedia(items,videoFirst);
+   const mixed=mixKinds?mixMedia(items,videoFirst):items;
    if(mixed.length)videoFirst=mixed.at(-1).kind!=='video';
    yield {items:mixed,issue:issues.join(' '),dates};
  }
@@ -1648,8 +1732,298 @@ function validSearchReference(item){
  try{return new URL(new URLSearchParams(item.image.split('?')[1]).get('url')).protocol==='https:';}catch{return false;}
 }
 
-$('browseGoogle').onclick=()=>Mic.browseGoogle($('words').value||$('genre').selectedOptions[0].text);const organicStyles=['Ink Bloom','Cell Fusion','Mycelial Drift','Viscous Flow','Soft Fracture','Phase Refraction',
- 'Molten Lens','Kelp Fold','Migrating Filaments','Sediment Erosion'];
+$('browseGoogle').onclick=()=>Mic.browseGoogle($('words').value||$('genre').selectedOptions[0].text);const organicVariants=[
+ 'Murmuration','Capillary Rise','Pollen Burst','Magnetic Lace','Coquina Weathering',
+ 'Bioluminescent Wake','Gossamer Tear','Mantle Convection','Lichen Colonies','Anemone Grip',
+ 'Moonpool Caustics','Isobar Slip','Chitin Molt','Turbidity Front','Ferrofluid Crown',
+ 'Vein Graft','Fungal Inversion','Glacial Creep','Echolocation','Tidal Biofilm'
+];
+
+const organicVariantShader=`
+ }else if(style==10){
+   // A flock turns in loose formation. Its wake bends the picture along its heading.
+   vec2 shear=vec2(0.);float wings=0.;
+   for(int i=0;i<4;i++){
+     vec2 id=hash(vec2(float(i),41.));
+     vec2 center=(id-.5)*norm+vec2(sin(t*.49+id.x*8.),cos(t*.61+id.y*8.))*.19;
+     vec2 d=rot(x-center,t*.31+id.x*6.28);
+     float flight=exp(-dot(d*vec2(1.8,6.),d*vec2(1.8,6.)))*sin(d.x*33.+d.y*9.-t*2.4);
+     wings+=flight;
+     shear+=rot(vec2(d.x*.24,flight*.16),-t*.31-id.x*6.28);
+   }
+   warp=shear+flow*.19;edge=abs(wings)*.4;field=wings*.27+(x.y+flow.x)*.24;
+ }else if(style==11){
+   // Narrow channels fill at different rates, then spread sideways into neighbors.
+   float comb=(x.x+flow.x*.16)*24.;vec2 id=hash(vec2(floor(comb),65.));
+   float tube=1.-abs(fract(comb)*2.-1.);
+   float front=x.y+.64-p*(1.1+id.x*.59)+.12*sin(t+id.y*13.);
+   float wet=exp(-abs(front)*(4.+id.y*12.));
+   warp=vec2((tube-.5)*wet*.105,wet*(.16+id.x*.23))+flow*.19;
+   field=-front*.86+(tube-.5)*.22;edge=wet*tube;
+   pigment=vec3(.07,.105,-.045)*wet;
+ }else if(style==12){
+   // An expanding plume peels away into individually seeded dust grains.
+   vec2 center=(hash(vec2(24.,9.))-.5)*norm*.65;
+   vec2 d=x-center;float r=length(d),angle=atan(d.y,d.x);
+   vec2 spores=vec2(angle*10.,r*24.-p*18.-t*.72);
+   vec2 id=hash(floor(spores));
+   float dotSize=length((fract(spores)-.2-id*.6)*vec2(1.,1.5));
+   float dust=(1.-smoothstep(.11,.28,dotSize))*exp(-abs(r-p*.83)*2.9);
+   warp=d/max(.13,r)*(dust*.2-.14*exp(-r*3.))+flow*.23;
+   field=(p*.75-r)*.76+dust*.58+(id.x-.5)*.12;edge=dust;
+   pigment=vec3(.19,.12,-.01)*dust;
+ }else if(style==13){
+   // Opposing magnetic poles stretch the textures into shared lines of force.
+   vec2 pole=rot(vec2(.23+hash(vec2(3.,9.)).x*.12,.05),t*.23+seed*.01);
+   vec2 u=x-pole,v=x+pole;
+   vec2 vector=u/(dot(u,u)+.032)-v/(dot(v,v)+.032);
+   float turn=atan(u.y,u.x)-atan(v.y,v.x);
+   float lines=pow(.5+.5*cos(turn*8.+log(1.+length(vector))*4.-t*.63),6.);
+   warp=vector/(2.+length(vector))*.25+flow*.12;
+   field=sin(turn*2.-t*.6)*.29+lines*.22+detail*.13;edge=lines;
+   pigment=vec3(-.07,.065,.19)*lines;
+ }else if(style==14){
+   // Soluble pockets expand beneath the surface and leave rings around the pits.
+   vec2 stone=q*1.65+flow*.8;
+   vec3 c=cellular(stone,0.);
+   float radius=.13+.36*p+.095*sin(t*.47+c.z*9.);
+   float pits=radius-c.x;
+   float lip=exp(-28.*abs(pits));
+   warp=vec2(cos(c.z*6.28),sin(c.z*6.28))*(max(0.,pits)*.53+lip*.032)+flow*.21;
+   field=pits*1.17+detail*.38;edge=lip;
+   pigment=vec3(.09,.045,-.035)*(lip-.32*step(0.,pits));
+ }else if(style==15){
+   // Moving organisms leave crescent wakes that light up at each sound pulse.
+   vec2 d=x;float wake=0.;vec2 push=vec2(0.);
+   for(int i=0;i<3;i++){
+     vec2 id=hash(vec2(float(i),81.));
+     float a=t*.73+id.x*12.;
+     vec2 v=rot(d-(id-.5)*norm*.53-vec2(cos(a),sin(a))*.21,-a);
+     float curve=abs(length(v+vec2(.09,0.))-.19);
+     float trail=exp(-24.*curve)*smoothstep(-.06,.17,-v.x);
+     wake+=trail;push+=rot(vec2(v.y,-v.x),a)*trail*.56;
+   }
+   warp=push+flow*.14;field=(wake-.31)*.72+detail*.22;edge=wake;
+   pigment=vec3(-.04,.27,.19)*wake*(.5+react*.55);
+ }else if(style==16){
+   // Counter-pulling sheets tear along an irregular seam, leaving stretched silk strands.
+   vec2 silk=rot(x,seed*.018+.23*sin(t*.34));
+   float split=silk.x+fbm(vec2(silk.y*5.,t*.42))*.45-.22;
+   float strain=exp(-abs(split)*6.);
+   float fiber=pow(.5+.5*sin((silk.y+flow.y*.22)*79.+t*.8),13.);
+   warp=rot(vec2((2./(1.+exp(-split*18.))-1.)*.27*strain,sin(silk.y*13.)*.10*strain),-seed*.018-.23*sin(t*.34));
+   field=split*.92+(fiber-.25)*strain*.38;edge=strain*fiber;
+   pigment=vec3(.17,.12,.21)*edge;
+ }else if(style==17){
+   // Wide convection rolls carry the layers in opposing directions above and below a midline.
+   vec2 current=rot(x,.31+flow.x*.6);
+   float xx=current.x*8.+t*.57+seed*.11,yy=current.y*9.+t*.33;
+   float cold=cos(xx)*cos(yy),heat=sin(xx)*sin(yy);
+   warp=vec2(sin(xx)*cos(yy),-cos(xx)*sin(yy))*.33+flow*.09;
+   field=heat*.43-cold*.17+detail*.15;edge=pow(abs(cold),3.);
+   pigment=mix(vec3(-.09,.035,.18),vec3(.19,.045,-.085),.5+.5*heat)*edge;
+ }else if(style==18){
+   // Neighboring colonies invade in overlapping discs and feather at their perimeter.
+   vec2 lichen=q*1.4+flow*.56;
+   vec2 tile=floor(lichen),f=fract(lichen);
+   float wall=3.,roughness=noise(lichen*9.)*.14;vec2 root=vec2(0.);
+   for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
+     vec2 k=vec2(float(i),float(j)),id=hash(tile+k);
+     vec2 d=k+.13+id*.74-f;
+     float phase=.08+.48*p+.19*id.y+.055*sin(t*.76+id.x*7.);
+     float colony=length(d)-phase+roughness;
+     if(colony<wall){wall=colony;root=d;}
+   }
+   edge=exp(-16.*abs(wall));warp=root*(edge*.26+max(0.,-wall)*.29)+flow*.18;
+   field=-wall*1.28+detail*.23;
+   pigment=vec3(.06,.14,-.03)*edge;
+ }else if(style==19){
+   // Uneven tentacles rotate and lengthen before gripping the two surfaces.
+   vec2 d=x+(hash(vec2(39.,39.))-.5)*.48;
+   float r=length(d),a=atan(d.y,d.x);
+   float grip=pow(.5+.5*cos(a*9.+r*10.+sin(r*13.-t)*1.4-t*.73),5.);
+   float reach=exp(-abs(r-(.16+.56*p))*4.3);
+   warp=rot(d,a*.2+1.57)*grip*reach*.56-d*reach*.22+flow*.14;
+   field=(grip-.35)*reach*.75+(p-r)*.31;edge=reach*grip;
+   pigment=vec3(.19,.015,.095)*edge;
+ }else if(style==20){
+   // Three crossing wave trains focus into moving pools of light.
+   vec2 a=rot(x,t*.11+seed*.009)*21.;
+   float u=sin(a.x+t*1.2),v=sin(a.y-t*1.7),w=sin((a.x+a.y)*.67+t*.94);
+   float focus=pow(.5+.5*(u*v*w),6.);
+   warp=vec2(cos(a.x+t*1.2)*v,cos(a.y-t*1.7)*u)*.15+flow*.14;
+   field=(u+v+w)*.11+focus*.35+detail*.10;edge=focus;
+   pigment=vec3(.19,.21,.16)*focus;
+ }else if(style==21){
+   // Barometric contours slide at different rates around a wandering pressure center.
+   vec2 d=x-vec2(sin(t*.34+seed*.03),cos(t*.21))*.25;
+   float pressure=length(d*vec2(1.4,.68))+fbm(q*.75+wind)*.72;
+   float line=pressure*28.-t*.9+p*5.;
+   float fold=sin(line)*.66+sin(line*.48)*.34;
+   warp=(vec2(d.y,-d.x)*fold*.49+vec2(fold,-fold*.21)*.11)+flow*.17;
+   field=(.68-pressure)*.74+fold*.21;edge=pow(1.-abs(fold),5.);
+   pigment=vec3(-.02,.095,.12)*edge;
+ }else if(style==22){
+   // Staggered plates lift and roll back from one edge as the new surface grows in.
+   vec2 grid=rot(x,.29+flow.x*.34)*vec2(9.,11.);
+   grid.x+=.5*mod(floor(grid.y),2.);
+   vec2 tile=floor(grid),f=fract(grid)-.5;
+   float lift=p*1.65-(hash(tile+21.).x*.81+.24*f.y);
+   float peel=sin(3.14*clamp(lift,0.,1.));
+   float shell=1.-smoothstep(.43,.61,length(f*vec2(1.2,.8)));
+   warp=rot(vec2(f.x*.22,-peel*.25+f.y*peel*.12),-.29)*shell+flow*.12;
+   field=(lift-.55)*shell*.72+detail*.25;edge=peel*(1.-shell);
+   pigment=vec3(.115,.062,-.045)*shell*peel;
+ }else if(style==23){
+   // A sediment current undercuts its head and leaves hanging jets behind it.
+   float head=x.y+.6-p*1.24+fbm(vec2(x.x*4.2-t*.6,t*.33))* .38;
+   float drag=exp(-head*head*24.);
+   float jets=fbm(vec2(x.x*15.+flow.x*2.,x.y*3.-t*.88));
+   warp=vec2(drag*(.19+jets*.27),-.42*drag*(jets-.42))+flow*.26;
+   field=-head*.82+(jets-.47)*drag*.79;edge=drag*jets;
+   pigment=vec3(.11,.035,-.06)*edge;
+ }else if(style==24){
+   // A moving magnetic crown throws thin spikes that fork as they leave the surface.
+   vec2 d=x-(hash(vec2(45.,2.))-.5)*norm*.43;
+   float r=length(d),a=atan(d.y,d.x);
+   float thorn=pow(.5+.5*cos(a*14.+r*3.-t*.92+sin(a*5.+t)*.37),10.);
+   float crown=.12+p*.5+thorn*(.17+.16*react)+fbm(q*2.)*.12;
+   float boundary=exp(-21.*abs(r-crown));
+   warp=d/max(r,.06)*boundary*(.08+thorn*.19)+flow*.20;
+   field=(crown-r)*.91+thorn*.19;edge=boundary;
+   pigment=vec3(.21,.045,.24)*thorn*boundary-vec3(.04)*boundary;
+ }else if(style==25){
+   // Splitting channels graft narrow patches of the next image onto thicker stems.
+   vec2 graft=rot(x,.63+seed*.012);
+   float spine=graft.x+.16*sin(graft.y*8.+t*.76)+flow.x*.28;
+   float ribs=abs(sin(spine*16.));
+   float branch=abs(sin(spine*39.+graft.y*19.+sin(graft.y*11.)*2.));
+   float vessels=exp(-ribs*10.)+.64*exp(-branch*15.)*(1.-ribs);
+   warp=rot(vec2((ribs-.5)*.12, vessels*.25),-.63-seed*.012)+flow*.18;
+   field=vessels*.69+detail*.32-.28;edge=vessels;
+   pigment=vec3(.15,.025,.075)*edge;
+ }else if(style==26){
+   // Small basins turn inside out like opening caps, with the image's tone picking the first folds.
+   vec2 caps=q*1.13+flow*.62;
+   vec2 id=hash(floor(caps));vec2 d=fract(caps)-.24-id*.52;
+   float r=length(d),fold=sin((r+.18*detail)*12.-t*.72+id.x*7.);
+   vec2 inverted=rot(d,fold*(.5+2.*p))*(1.-.68*r);
+   warp=(inverted-d)*.52+flow*.20;
+   field=fold*.32+detail*.45+(.35-r)*.42;edge=pow(1.-abs(fold),4.);
+   pigment=vec3(.10,.09,-.06)*edge;
+ }else if(style==27){
+   // Glacial strata shear under sustained pressure and widen around grinding ridges.
+   vec2 ice=rot(x,.71+seed*.006);
+   float ridges=ice.y+fbm(vec2(ice.x*3.8,t*.16))* .37;
+   float crest=sin(ridges*27.-t*.45+flow.y*3.);
+   float crack=exp(-abs(ice.x+.21*sin(ridges*12.))*7.);
+   warp=rot(vec2(crest*.24+crack*.14,crack*(ice.y-.32)*.43),-.71-seed*.006);
+   field=crest*.13+crack*.44+detail*.27+ice.x*.42;edge=crack*pow(1.-abs(crest),5.);
+   pigment=vec3(-.085,.13,.21)*edge;
+ }else if(style==28){
+   // Three reflected chirps cross and lift image edges into short-lived relief.
+   float returnWave=0.;vec2 push=vec2(0.);
+   for(int i=0;i<3;i++){
+     vec2 id=hash(vec2(float(i),74.));
+     vec2 d=x-(id-.5)*norm*.97;
+     float r=length(d),wave=sin(r*(30.+id.x*14.)-t*(1.7+id.y)+float(i)*1.73);
+     float echo=exp(-r*2.5)*wave;
+     push+=d/max(r,.08)*echo*.11;returnWave+=echo;
+   }
+   warp=push+flow*.13;
+   field=returnWave*.44+detail*.36;edge=pow(min(1.,abs(returnWave)),3.);
+   pigment=vec3(-.035,.16,.07)*edge;
+ }else if(style==29){
+   // Stringy biofilm stretches along an oscillating waterline and snaps into bubbles.
+   float tide=x.y+.57-p*1.11+.13*sin(x.x*8.+t*.82)+.095*sin(x.x*14.-t*.53);
+   float meniscus=exp(-abs(tide)*10.);
+   vec3 c=cellular(vec2(q.x*3.8+t*.38,tide*18.)+flow*.82,t*.38);
+   float bubble=exp(-24.*abs(c.x-.27-.13*react));
+   warp=vec2(sin(x.x*7.+t*.63)*.23,meniscus*(c.x-.46)*.37)+flow*.21;
+   field=-tide*.81+(bubble-.46)*meniscus*.41;edge=meniscus*bubble;
+   pigment=vec3(.04,.17,.14)*edge;
+`;
+
+const organicFract=value=>value-Math.floor(value);
+function organicVariantField(style,x,y,p,t,seed,out){
+ const {sin,cos,abs,sqrt,atan2,floor,exp,pow}=Math;
+ const fract=organicFract;
+ const xx=x-.18*sin(seed+t*.23),yy=y-.16*cos(seed*.7-t*.18);
+ let r,angle,v,k,field,dx,dy;
+ switch(style){
+   case 10:
+     v=sin(xx*24.+yy*7.-t*2.)*exp(-yy*yy*18.);k=sin(y*15.+t)*cos(x*7.);
+     field=v*.36;dx=k*.08;dy=v*.18;break;
+   case 11:
+     k=1.-abs(fract((xx+.018*sin(yy*18.))*23.)*2.-1.);v=yy+.57-p*(.9+sin(floor(xx*23.)+seed)*.31);
+     field=-v*.83;dx=(k-.5)*.08;dy=exp(-abs(v)*9.)*.29;break;
+   case 12:
+     r=sqrt(xx*xx+yy*yy);angle=atan2(yy,xx);
+     v=exp(-abs(r-p*.78)*4.)*pow(.5+.5*sin(r*83.-t*3.)*cos(angle*37.+seed),6.);
+     field=(p*.72-r)*.65+v*.54;dx=xx*v*.37;dy=yy*v*.37;break;
+   case 13:
+     angle=atan2(yy,xx-.24)-atan2(yy,xx+.24);v=cos(angle*8.-t);
+     field=sin(angle*2.+t)*.31+v*.17;dx=sin(angle)*v*.19;dy=cos(angle)*v*.19;break;
+   case 14:
+     r=sqrt(pow(fract(xx*11.)-.5,2)+pow(fract(yy*11.)-.5,2));v=.14+p*.33+.06*sin(floor(xx*11.)*5.+t)-r;
+     field=v*1.13;dx=exp(-abs(v)*21.)*.12;dy=-dx*sin(yy*8.);break;
+   case 15:
+     r=sqrt(pow(xx+.13*cos(t),2)+pow(yy-.19*sin(t),2));v=exp(-abs(r-.23)*24.)*(.5+.5*sin(t-xx*8.));
+     field=(v-.22)*.63;dx=yy*v*.7;dy=-xx*v*.7;break;
+   case 16:
+     v=xx+.21*sin(yy*7.+t*.78);k=exp(-abs(v)*7.);
+     field=v*.78+pow(.5+.5*cos(yy*79.+seed),9.)*k*.25;dx=k*(2./(1.+exp(-16.*v))-1.)*.27;dy=k*sin(yy*13.)*.09;break;
+   case 17:
+     v=xx*8.+t*.57;k=yy*9.+t*.33;
+     field=sin(v)*sin(k)*.45;dx=sin(v)*cos(k)*.31;dy=-cos(v)*sin(k)*.31;break;
+   case 18:
+     v=fract(xx*5.)-.5;k=fract(yy*5.)-.5;
+     r=sqrt(v*v+k*k);angle=.15+.46*p+.08*sin(floor(xx*5.)*8.+floor(yy*5.)*3.+t);
+     field=(angle-r)*1.1;dx=v*exp(-abs(field)*14.)*.31;dy=k*exp(-abs(field)*14.)*.31;break;
+   case 19:
+     r=sqrt(xx*xx+yy*yy);angle=atan2(yy,xx);
+     v=pow(.5+.5*cos(angle*9.+r*10.-t),5.)*exp(-abs(r-.15-p*.5)*5.);
+     field=v*.67-r*.26;dx=-yy*v*.63;dy=xx*v*.63;break;
+   case 20:
+     v=sin(xx*22.+t*1.2);k=sin(yy*20.-t*1.7);
+     field=(v+k+sin((xx+yy)*15.+t))*.13;dx=cos(xx*22.+t*1.2)*k*.15;dy=cos(yy*20.-t*1.7)*v*.15;break;
+   case 21:
+     r=sqrt(xx*xx*1.7+yy*yy*.48);v=sin((r+.11*cos(x*5.+seed))*26.-t*1.4);
+     field=(.5-r)*.7+v*.22;dx=v*(.11+yy*.37);dy=-v*xx*.37;break;
+   case 22:
+     k=floor(yy*10.);v=fract(xx*9.+.5*(k%2))-.5;r=fract(yy*10.)-.5;
+     angle=sin(floor(xx*9.)*9.+k*5.+seed);field=(p*1.8+.4*angle-r*.23-.85)*(1.-abs(v));
+     dx=v*.18;dy=-sin(Math.PI*Math.min(1,Math.max(0,field+.5)))*.23*(1.-abs(v));break;
+   case 23:
+     v=yy+.59-p*1.22+.17*sin(xx*8.-t*.71);k=exp(-v*v*22.);
+     field=-v*.82+k*sin(xx*29.+t*1.3)*.31;dx=k*.26;dy=k*cos(xx*29.+t*1.3)*.19;break;
+   case 24:
+     r=sqrt(xx*xx+yy*yy);angle=atan2(yy,xx);
+     v=pow(.5+.5*cos(angle*14.+r*3.-t+.33*sin(angle*5.)),9.);
+     k=.13+p*.5+v*.24-r;field=k*.95;dx=xx*v*exp(-abs(k)*17.);dy=yy*v*exp(-abs(k)*17.);break;
+   case 25:
+     v=xx+.17*sin(yy*8.+t*.75);k=exp(-abs(sin(v*16.))*9.)+.6*exp(-abs(sin(v*38.+yy*19.))*14.);
+     field=k*.73-.25;dx=sin(v*16.)*.075;dy=k*.25;break;
+   case 26:
+     v=fract(xx*4.)-.5;k=fract(yy*4.)-.5;r=sqrt(v*v+k*k);
+     angle=sin(r*15.-t+floor(xx*4.)*3.)*(.7+2.*p);field=angle*.23-r*.26;
+     dx=(cos(angle)*v-sin(angle)*k-v)*.47;dy=(sin(angle)*v+cos(angle)*k-k)*.47;break;
+   case 27:
+     v=yy+.31*xx+.1*cos(xx*6.+seed-t*.23);k=sin(v*27.-t*.45);r=exp(-abs(xx+.21*sin(v*12.))*7.);
+     field=k*.15+r*.41+xx*.39;dx=k*.23+r*.13;dy=r*(yy-.29)*.39;break;
+   case 28:
+     r=sqrt(pow(xx-.23,2)+yy*yy);v=sin(r*36.-t*2.)*exp(-r*2.5);
+     r=sqrt(pow(xx+.29,2)+pow(yy-.18,2));k=cos(r*41.-t*2.5)*exp(-r*2.4);
+     field=(v+k)*.4;dx=v*.13;dy=k*.13;break;
+   case 29:
+     v=yy+.55-p*1.1+.16*sin(xx*8.+t)+.08*sin(xx*14.-t*.53);k=exp(-abs(v)*10.);
+     r=1.-abs(fract(xx*19.+t*.4)*2.-1.);field=-v*.78+(r-.45)*k*.45;dx=sin(xx*7.+t*.63)*.21;dy=(r-.48)*k*.27;break;
+ }
+ out[0]=field;out[1]=dx;out[2]=dy;
+}
+
+const organicStyles=['Ink Bloom','Cell Fusion','Mycelial Drift','Viscous Flow','Soft Fracture','Phase Refraction',
+ 'Molten Lens','Kelp Fold','Migrating Filaments','Sediment Erosion',...organicVariants];
 let organicSeed=Math.random()*4096;
 let organicRenderer;
 const organicVertex=`
@@ -1710,6 +2084,7 @@ void main(){
  vec2 flow=vec2(fbm(q+wind+12.),fbm(q-wind-17.))-.46;
  vec2 warp=flow*.52;
  float field=0.,edge=0.;
+ vec3 pigment=vec3(0.);
  vec3 baseA=sampleA(uv),baseB=sampleB(uv);
  float detail=lum(baseB)-lum(baseA);
  if(style==0){
@@ -1786,7 +2161,7 @@ void main(){
    warp=(d-q-wind)*.14;
    edge=pow(.5+.5*ribbon,9.);
    field=ribbon*.17+flow.x*.8+detail*.27;
- }else{
+ }else if(style==9){
    // The source images' local brightness gradients steer the erosion.
    vec2 offset=vec2(.008,0.);
    float dx=lum(sampleA(uv+offset))-lum(sampleA(uv-offset));
@@ -1797,6 +2172,7 @@ void main(){
    warp=flow*.46+vec2(-dy,dx)*(.36+.50*bed);
    edge=smoothstep(.014,.26,length(slope))*(.5+.5*layers);
    field=detail*.45+(bed-.45)*.82+layers*.11;
+${organicVariantShader}
  }
  vec2 bend=warp/norm*intensity;
  vec2 drift=vec2(-flow.y,flow.x)/norm*intensity*.23;
@@ -1808,7 +2184,7 @@ void main(){
  float seam=clamp(edge*phase*intensity*.32,0.,.35);
  vec3 bleed=vec3(sampleA(uv+bend*1.8).r,mix(a.g,b.g,.5),sampleB(uv-bend*1.9).b);
  outputColor=mix(outputColor,bleed,seam);
- gl_FragColor=vec4(outputColor,1.);
+ gl_FragColor=vec4(outputColor+pigment*phase*intensity,1.);
 }
 `;
 
@@ -1897,18 +2273,22 @@ function createOrganicFallback(){
    if(out.canvas.width!==w||out.canvas.height!==h){out.canvas.width=w;out.canvas.height=h;}
    const output=out.createImageData(w,h),d=output.data;
    const strength=Number($('warp').value)*(Math.sin(Math.PI*p)+.26*(motion.level+motion.pulse));
-   const s=seed*.022,v=t*.66;
+   const s=seed*.022,v=t*.66,variant=[0,0,0];
    for(let j=0;j<h;j++)for(let i=0;i<w;i++){
      const u=i/Math.max(1,w-1),z=j/Math.max(1,h-1);
-     const qx=u*7+1.5*Math.sin(z*9+v+s);
-     const qy=z*7+1.5*Math.cos(u*9-v-s);
-     const waves=Math.sin(qx+qy+v+s)*Math.cos(qy*1.4-v);
-     const fold=Math.sin(qx*(index+1)*.63+Math.sin(qy*2-v));
-     const dx=(waves*.11+fold*.05)*strength,dy=(Math.sin(qx-qy+v)*.12+fold*.035)*strength;
+     if(index>=10)organicVariantField(index,u-.5,z-.5,p,t,s,variant);
+     else{
+       const qx=u*7+1.5*Math.sin(z*9+v+s),qy=z*7+1.5*Math.cos(u*9-v-s);
+       const waves=Math.sin(qx+qy+v+s)*Math.cos(qy*1.4-v),fold=Math.sin(qx*(index+1)*.63+Math.sin(qy*2-v));
+       variant[0]=waves*.32+fold*.23;
+       variant[1]=waves*.11+fold*.05;
+       variant[2]=Math.sin(qx-qy+v)*.12+fold*.035;
+     }
+     const dx=variant[1]*strength,dy=variant[2]*strength;
      const at=(xx,yy)=>(Math.round(reflect(yy)*(h-1))*w+Math.round(reflect(xx)*(w-1)))*4;
      const ai=at(u+dx,z+dy),bi=at(u-dx,z-dy);
      const detail=(y[bi+1]-x[ai+1])/255;
-     const mask=Math.max(0,Math.min(1,p+(waves*.32+fold*.23+detail*.22)*strength));
+     const mask=Math.max(0,Math.min(1,p+(variant[0]+detail*.22)*strength));
      const blend=mask*mask*(3-2*mask),pos=(j*w+i)*4;
      for(let c=0;c<3;c++)d[pos+c]=x[ai+c]+(y[bi+c]-x[ai+c])*blend;
      d[pos+3]=255;
@@ -2036,7 +2416,7 @@ function getThesaurus(){
 }
 function searchVariants(seed,thesaurus){
  const normalize=value=>value.toLowerCase().replace(/[^\p{L}\p{N} -]+/gu,' ').trim().replace(/\s+/g,' ');
- const phrases=[...new Set(seed.split(',').map(normalize).filter(Boolean))];
+ const phrases=[...new Set(splitSeedTerms(seed).map(normalize).filter(Boolean))];
  const variants=phrases.map(phrase=>{
    const direct=Object.hasOwn(thesaurus,phrase)?thesaurus[phrase]:[];
    const words=phrase.split(' ');
@@ -2046,7 +2426,6 @@ function searchVariants(seed,thesaurus){
    return [...direct,...related.map(word=>[...words.slice(0,-1),word].join(' '))];
  });
  const results=new Set(),originals=new Set(phrases);
- originals.add(phrases.join(' '));
  for(let i=0;variants.some(group=>group.length>i);i++)for(const group of variants){
    if(group[i]&&!originals.has(group[i]))results.add(group[i]);
    if(results.size===6)return [...results];
@@ -2054,7 +2433,7 @@ function searchVariants(seed,thesaurus){
  return [...results];
 }
 async function* abstractSearchPages(query,token){
- yield* searchAllPages(query);
+ yield* searchAllPages(query,token);
  if(token!==searchToken)return;
  const seed=query.get('words').trim();
  if(!seed)return;
@@ -2062,7 +2441,7 @@ async function* abstractSearchPages(query,token){
  try{terms=searchVariants(seed,await getThesaurus());}
  catch(error){yield {items:[],issue:error.message};return;}
  if(!terms.length||token!==searchToken)return;
- recordSearchTerm(seed);
+ for(const term of splitSeedTerms(seed))recordSearchTerm(term);
  for(const term of terms){
    if(token!==searchToken)return;
    recordSearchTerm(term);
@@ -2070,7 +2449,7 @@ async function* abstractSearchPages(query,token){
    const next=new URLSearchParams(query);
    next.set('words',term);
    let pages=0;
-   for await(const page of searchAllPages(next)){
+   for await(const page of searchAllPages(next,token)){
      yield page;
      if(++pages===3||token!==searchToken)break;
    }
@@ -2078,9 +2457,6 @@ async function* abstractSearchPages(query,token){
 }
 
 const peerTubeHosts=['video.blender.org','peertube.tv','tilvids.com','fedi.video','diode.zone','makertube.net','video.hardlimit.com'];
-async function* videoCatalogPages(search,queries){
- for(const terms of queries)yield* search(terms);
-}
 async function* archiveVideoCatalogPages(terms){
  const words=(terms.match(/[\p{L}\p{N}]+/gu)||[]).map(word=>'"'+word+'"');
  const search='mediatype:movies'+(words.length?' AND ('+words.join(' AND ')+')':'');
@@ -2478,7 +2854,9 @@ function selectDeckFragment(index){
  if(asset.kind!=='video'){choose(index);return;}
  const player=videoPlayers.get(asset);
  if(player?.error)retireVideo(asset,player);
+ else if(player&&videoStartMode(asset)!=='resume')beginVideoPass(asset,player);
  a=index;b=(index+1)%assets.length;morph=0;manual=false;lastDrift=performance.now();
+ tempoClock.reset();
  syncFragmentPlayers();
 }
 
@@ -2594,5 +2972,85 @@ function deckHandle(asset,cell){
  return handle;
 }
 
-initMediaMode();initFragmentRange();initLooks();updateOutputs();dimensions();requestAnimationFrame(frame);
+const tempoDefaults={enabled:false,bpm:120,division:'1/4'};
+const tempoToggle=$('tempoSync'),tempoBpm=$('tempoBpm'),tempoDivision=$('tempoDivision'),tempoCustom=$('tempoCustom');
+let tempoSettings,tempoPeriod;
+const tempoClock=makeTempoClock();
+
+function makeTempoClock(){
+ let anchor=null,pausedAt=null,emitted=0;
+ return {
+   reset(){anchor=pausedAt=null;emitted=0;},
+   pause(now){if(anchor!==null&&pausedAt===null)pausedAt=now;},
+   advance(now,period){
+     if(anchor===null)anchor=now;
+     if(pausedAt!==null){anchor+=now-pausedAt;pausedAt=null;}
+     const time=Math.max(0,now-anchor)/period;
+     const step=Math.floor(time+1e-9),steps=Math.max(0,step-emitted);
+     emitted=step;
+     return {steps,phase:Math.max(0,time-step)};
+   }
+ };
+}
+
+function tempoFraction(value){
+ const match=/^([1-9]\d{0,2})\s*\/\s*([1-9]\d{0,2})$/.exec(String(value).trim());
+ if(!match)return null;
+ const numerator=Number(match[1]),denominator=Number(match[2]);
+ if(numerator>128||denominator>128)return null;
+ return {value:numerator+'/'+denominator,beats:4*numerator/denominator};
+}
+
+function restoreTempo(state){
+ const fraction=tempoFraction(state?.division)||tempoFraction(tempoDefaults.division);
+ const bpm=Math.min(400,Math.max(20,Math.round(Number(state?.bpm)||tempoDefaults.bpm)));
+ tempoSettings={enabled:state?.enabled===true,bpm,division:fraction.value};
+ tempoPeriod=60000/bpm*fraction.beats;
+ tempoToggle.checked=tempoSettings.enabled;
+ tempoBpm.value=bpm;
+ tempoCustom.setCustomValidity('');
+ tempoDivision.value=Array.from(tempoDivision.options).some(option=>option.value===fraction.value)?fraction.value:'custom';
+ if(tempoDivision.value==='custom')tempoCustom.value=fraction.value;
+ $('tempoCustomField').hidden=tempoDivision.value!=='custom';
+ $('tempoSummary').textContent=tempoSettings.enabled?'Tempo · '+bpm+' BPM · '+fraction.value:'Tempo sync';
+ localStorage.setItem('tempoSettings',JSON.stringify(tempoSettings));
+ tempoClock.reset();
+}
+
+function initTempo(){
+ let saved;
+ try{saved=JSON.parse(localStorage.getItem('tempoSettings'));}catch{}
+ restoreTempo(saved);
+ const change=event=>{
+   if(event.currentTarget===tempoToggle&&!tempoToggle.checked){restoreTempo({...tempoSettings,enabled:false});return;}
+   const custom=tempoDivision.value==='custom';
+   $('tempoCustomField').hidden=!custom;
+   const division=custom?tempoCustom.value:tempoDivision.value;
+   if(!tempoFraction(division)){
+     tempoCustom.setCustomValidity('Enter a fraction with values from 1 to 128.');
+     tempoCustom.reportValidity();
+     return;
+   }
+   tempoCustom.setCustomValidity('');
+   if(tempoToggle.checked&&!tempoSettings.enabled)manual=false;
+   restoreTempo({enabled:tempoToggle.checked,bpm:tempoBpm.value,division});
+ };
+ for(const control of [tempoToggle,tempoBpm,tempoDivision,tempoCustom])control.onchange=change;
+}
+
+function updateFragmentTempo(now){
+ if(!tempoSettings.enabled)return false;
+ if(frozen){tempoClock.pause(now);return true;}
+ const {steps,phase}=tempoClock.advance(now,tempoPeriod);
+ if(steps){
+   const count=assets.length||demos.length;
+   a=(b+steps-1)%count;
+   b=(a+1)%count;
+   manual=false;
+ }
+ if(!manual)morph=phase;
+ return true;
+}
+
+initTempo();initMediaMode();initFragmentRange();initLooks();updateOutputs();dimensions();requestAnimationFrame(frame);
 </script></body></html>

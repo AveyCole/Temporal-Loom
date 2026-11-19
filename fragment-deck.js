@@ -7,7 +7,9 @@ function selectDeckFragment(index){
  if(asset.kind!=='video'){choose(index);return;}
  const player=videoPlayers.get(asset);
  if(player?.error)retireVideo(asset,player);
+ else if(player&&videoStartMode(asset)!=='resume')beginVideoPass(asset,player);
  a=index;b=(index+1)%assets.length;morph=0;manual=false;lastDrift=performance.now();
+ tempoClock.reset();
  syncFragmentPlayers();
 }
 

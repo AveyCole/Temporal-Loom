@@ -6,6 +6,8 @@ const MAX_FRAGMENTS=512;
 const PREVIEW_EDGE=256;
 const committedLocalFragments=new Set();
 let videoBackgrounded=false;
+let previousIncomingFragment;
+const videoStartOptions=[['resume','Resume'],['beginning','Beginning'],['random','Random point']];
 function makeFragmentVideo(){
  const video=document.createElement('video');
  video.muted=true;video.defaultMuted=true;video.playsInline=true;video.loop=true;video.preload='auto';
@@ -94,16 +96,40 @@ function retireVideo(item,video){
  }
  detachVideo(video);videoPlayers.delete(item);
 }
+function videoStartMode(item){
+ return item.videoStart==='beginning'||item.videoStart==='random'?item.videoStart:'resume';
+}
+function videoStartTime(item,duration,random=Math.random){
+ const mode=videoStartMode(item);
+ if(mode==='random')return random()*Math.max(0,duration-Math.min(.2,duration*.1));
+ if(mode==='resume'&&item.resumeAt>0&&item.resumeAt<duration)return item.resumeAt;
+ return 0;
+}
+function beginVideoPass(item,video){
+ if(item.liveStream||!Number.isFinite(video.duration)||video.duration<=0)return;
+ const start=videoStartTime(item,video.duration);
+ if(video.currentTime!==start)video.currentTime=start;
+}
+function updateFragmentVideoLoop(item,video){
+ video.loop=videoStartMode(item)!=='random'||!Number.isFinite(video.duration)||video.duration<=0;
+}
 function openFragmentVideo(item){
  const video=preparedVideos.get(item)||makeFragmentVideo();
  preparedVideos.delete(item);
  videoPlayers.set(item,video);
- video.onloadedmetadata=()=>{
+ const configure=()=>{
    if(videoPlayers.get(item)!==video)return;
-   if(!item.liveStream&&item.resumeAt>0&&item.resumeAt<video.duration)video.currentTime=item.resumeAt;
+   updateFragmentVideoLoop(item,video);
+   beginVideoPass(item,video);
+ };
+ video.onloadedmetadata=configure;
+ video.onended=()=>{
+   if(videoPlayers.get(item)!==video||videoStartMode(item)!=='random'||video.loop)return;
+   beginVideoPass(item,video);
  };
  if(item.liveStream)video.srcObject=item.liveStream;
- else if(video.getAttribute('src')!==item.image)video.src=item.image;
+ else if(video.getAttribute('src')===item.image&&video.readyState>=1)configure();
+ else video.src=item.image;
  return video;
 }
 function resumeFragmentVideo(video){
@@ -128,9 +154,25 @@ function syncFragmentPlayers(){
    else if(!enabled&&!video.paused)video.pause();
  }
  if(!enabled)return;
+ const incoming=videoPlayers.get(second);
+ if(incoming&&second!==first&&second!==previousIncomingFragment&&videoStartMode(second)!=='resume')beginVideoPass(second,incoming);
+ previousIncomingFragment=second;
  for(const item of [first,second]){
    if(item?.kind==='video')resumeFragmentVideo(videoPlayers.get(item)||openFragmentVideo(item));
  }
+}
+function videoStartControl(item){
+ const label=document.createElement('label');label.className='fragment-video-start';label.textContent='Video start';
+ const select=document.createElement('select');select.setAttribute('aria-label','Video start for '+item.title);
+ for(const [value,title] of videoStartOptions)select.add(new Option(title,value));
+ select.value=videoStartMode(item);
+ select.onchange=()=>{
+   item.videoStart=select.value;
+   const video=videoPlayers.get(item);
+   if(video)updateFragmentVideoLoop(item,video);
+ };
+ label.append(select);
+ return label;
 }
 function fragmentFrame(item){
  const video=videoPlayers.get(item);

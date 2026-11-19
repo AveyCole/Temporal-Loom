@@ -52,4 +52,4 @@ Copy-Item -Path '../assets/type-licenses/*' -Destination "$out/Legal" -Force
 Copy-Item -LiteralPath '../assets/legal/WordNet-LICENSE.txt' -Destination "$out/Legal" -Force
 Copy-Item -LiteralPath '../assets/type-fonts' -Destination $out -Recurse -Force
 Copy-Item -LiteralPath 'START HERE.txt' -Destination $out -Force
-if(!$Verify){Compress-Archive -Path $out -DestinationPath 'dist/Temporal-Loom-1.20.1-Windows-x64.zip' -Force}
+if(!$Verify){Compress-Archive -Path $out -DestinationPath 'dist/Temporal-Loom-1.21-Windows-x64.zip' -Force}

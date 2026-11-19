@@ -1,5 +1,5 @@
 const organicStyles=['Ink Bloom','Cell Fusion','Mycelial Drift','Viscous Flow','Soft Fracture','Phase Refraction',
- 'Molten Lens','Kelp Fold','Migrating Filaments','Sediment Erosion'];
+ 'Molten Lens','Kelp Fold','Migrating Filaments','Sediment Erosion',...organicVariants];
 let organicSeed=Math.random()*4096;
 let organicRenderer;
 const organicVertex=`
@@ -60,6 +60,7 @@ void main(){
  vec2 flow=vec2(fbm(q+wind+12.),fbm(q-wind-17.))-.46;
  vec2 warp=flow*.52;
  float field=0.,edge=0.;
+ vec3 pigment=vec3(0.);
  vec3 baseA=sampleA(uv),baseB=sampleB(uv);
  float detail=lum(baseB)-lum(baseA);
  if(style==0){
@@ -136,7 +137,7 @@ void main(){
    warp=(d-q-wind)*.14;
    edge=pow(.5+.5*ribbon,9.);
    field=ribbon*.17+flow.x*.8+detail*.27;
- }else{
+ }else if(style==9){
    // The source images' local brightness gradients steer the erosion.
    vec2 offset=vec2(.008,0.);
    float dx=lum(sampleA(uv+offset))-lum(sampleA(uv-offset));
@@ -147,6 +148,7 @@ void main(){
    warp=flow*.46+vec2(-dy,dx)*(.36+.50*bed);
    edge=smoothstep(.014,.26,length(slope))*(.5+.5*layers);
    field=detail*.45+(bed-.45)*.82+layers*.11;
+${organicVariantShader}
  }
  vec2 bend=warp/norm*intensity;
  vec2 drift=vec2(-flow.y,flow.x)/norm*intensity*.23;
@@ -158,7 +160,7 @@ void main(){
  float seam=clamp(edge*phase*intensity*.32,0.,.35);
  vec3 bleed=vec3(sampleA(uv+bend*1.8).r,mix(a.g,b.g,.5),sampleB(uv-bend*1.9).b);
  outputColor=mix(outputColor,bleed,seam);
- gl_FragColor=vec4(outputColor,1.);
+ gl_FragColor=vec4(outputColor+pigment*phase*intensity,1.);
 }
 `;
 
@@ -247,18 +249,22 @@ function createOrganicFallback(){
    if(out.canvas.width!==w||out.canvas.height!==h){out.canvas.width=w;out.canvas.height=h;}
    const output=out.createImageData(w,h),d=output.data;
    const strength=Number($('warp').value)*(Math.sin(Math.PI*p)+.26*(motion.level+motion.pulse));
-   const s=seed*.022,v=t*.66;
+   const s=seed*.022,v=t*.66,variant=[0,0,0];
    for(let j=0;j<h;j++)for(let i=0;i<w;i++){
      const u=i/Math.max(1,w-1),z=j/Math.max(1,h-1);
-     const qx=u*7+1.5*Math.sin(z*9+v+s);
-     const qy=z*7+1.5*Math.cos(u*9-v-s);
-     const waves=Math.sin(qx+qy+v+s)*Math.cos(qy*1.4-v);
-     const fold=Math.sin(qx*(index+1)*.63+Math.sin(qy*2-v));
-     const dx=(waves*.11+fold*.05)*strength,dy=(Math.sin(qx-qy+v)*.12+fold*.035)*strength;
+     if(index>=10)organicVariantField(index,u-.5,z-.5,p,t,s,variant);
+     else{
+       const qx=u*7+1.5*Math.sin(z*9+v+s),qy=z*7+1.5*Math.cos(u*9-v-s);
+       const waves=Math.sin(qx+qy+v+s)*Math.cos(qy*1.4-v),fold=Math.sin(qx*(index+1)*.63+Math.sin(qy*2-v));
+       variant[0]=waves*.32+fold*.23;
+       variant[1]=waves*.11+fold*.05;
+       variant[2]=Math.sin(qx-qy+v)*.12+fold*.035;
+     }
+     const dx=variant[1]*strength,dy=variant[2]*strength;
      const at=(xx,yy)=>(Math.round(reflect(yy)*(h-1))*w+Math.round(reflect(xx)*(w-1)))*4;
      const ai=at(u+dx,z+dy),bi=at(u-dx,z-dy);
      const detail=(y[bi+1]-x[ai+1])/255;
-     const mask=Math.max(0,Math.min(1,p+(waves*.32+fold*.23+detail*.22)*strength));
+     const mask=Math.max(0,Math.min(1,p+(variant[0]+detail*.22)*strength));
      const blend=mask*mask*(3-2*mask),pos=(j*w+i)*4;
      for(let c=0;c<3;c++)d[pos+c]=x[ai+c]+(y[bi+c]-x[ai+c])*blend;
      d[pos+3]=255;

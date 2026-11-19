@@ -1,7 +1,4 @@
 const peerTubeHosts=['video.blender.org','peertube.tv','tilvids.com','fedi.video','diode.zone','makertube.net','video.hardlimit.com'];
-async function* videoCatalogPages(search,queries){
- for(const terms of queries)yield* search(terms);
-}
 async function* archiveVideoCatalogPages(terms){
  const words=(terms.match(/[\p{L}\p{N}]+/gu)||[]).map(word=>'"'+word+'"');
  const search='mediatype:movies'+(words.length?' AND ('+words.join(' AND ')+')':'');
