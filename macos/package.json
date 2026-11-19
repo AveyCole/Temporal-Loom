@@ -1,0 +1,14 @@
+{
+  "name": "temporal-loom",
+  "version": "1.17.0",
+  "description": "Temporal Loom for macOS",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "package": "node package.mjs"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.4.1"
+  }
+}

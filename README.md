@@ -9,6 +9,10 @@ Temporal Loom is a live visual instrument for Windows and Android. Search for ph
 - **Windows 10 or 11, 64-bit**. Extract the release ZIP and open `Temporal Loom.exe`. Keep the companion files alongside the executable. Install Microsoft's WebView2 Evergreen Runtime if Windows prompts for it.
 - **Android 8 or later**. Open the release APK and follow the installation prompt.
 
+## macOS preview
+
+An Apple Silicon macOS port is available in [`macos/`](macos/README.md). Run `bash macos/build.sh` with Node.js 22 or later to build the app. This preview has not completed interactive hardware testing; see the macOS README for supported features and limitations.
+
 ## Use
 
 - In Studio, choose Photos, Videos, or Both under **Media to find**. Turn on **Abstract search** to try related phrases when the first search runs short.
