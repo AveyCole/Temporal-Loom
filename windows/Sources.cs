@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -19,6 +20,9 @@ namespace TemporalLoom
     internal sealed class Sources
     {
         private const int MiB = 1024 * 1024;
+        // WebView2 can buffer an entire intercepted response before delivering it to the player.
+        internal const int MediaChunkBytes = 4 * MiB;
+        private const long MaxWebVideoBytes = 512L * MiB;
         private const int LocalSearchCandidates = 2048;
         private readonly LoomWindow app;
         private readonly ConcurrentDictionary<string, string> folderFiles = new ConcurrentDictionary<string, string>();
@@ -277,18 +281,8 @@ namespace TemporalLoom
                     string mime = response.Content.Headers.ContentType == null ? "" : response.Content.Headers.ContentType.MediaType;
                     if (detectVideo && VideoMime(mime, uri) != null) return new Remote { Uri = uri, Mime = mime };
                     if (response.Content.Headers.ContentLength > limit) throw new IOException();
-                    using (var input = await response.Content.ReadAsStreamAsync())
-                    using (var output = new MemoryStream())
-                    {
-                        byte[] buffer = new byte[32768];
-                        int count;
-                        while ((count = await input.ReadAsync(buffer, 0, buffer.Length, deadline.Token)) > 0)
-                        {
-                            if (output.Length + count > limit) throw new IOException();
-                            output.Write(buffer, 0, count);
-                        }
-                        return new Remote { Uri = uri, Mime = mime, Bytes = output.ToArray() };
-                    }
+                    using (var body = await ReadBounded(response.Content, limit, deadline.Token))
+                        return new Remote { Uri = uri, Mime = mime, Bytes = body.ToArray() };
                 }
             }
             throw new IOException("Too many redirects.");
@@ -298,6 +292,7 @@ namespace TemporalLoom
         {
             Uri uri;
             if (!Uri.TryCreate(target, UriKind.Absolute, out uri)) throw new IOException();
+            RangeHeaderValue requested = BoundedMediaRange(range);
             for (int hop = 0; hop < 6; hop++)
             {
                 if (uri.Scheme != "https" || uri.UserInfo.Length > 0) throw new IOException();
@@ -305,11 +300,8 @@ namespace TemporalLoom
                 using (var deadline = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(18)))
                 {
                     request.Headers.TryAddWithoutValidation("Accept-Encoding", "identity");
-                    if (range != null && Regex.IsMatch(range, @"^bytes=(\d+-\d*|-\d+)$"))
-                        request.Headers.TryAddWithoutValidation("Range", range);
-                    var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
-                    bool ownsBody = false;
-                    try
+                    request.Headers.Range = requested;
+                    using (var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token))
                     {
                         int status = (int)response.StatusCode;
                         if (status >= 300 && status < 400 && response.Headers.Location != null)
@@ -317,22 +309,85 @@ namespace TemporalLoom
                             uri = new Uri(uri, response.Headers.Location);
                             continue;
                         }
-                        if (status != 200 && status != 206) throw new IOException("Video server returned " + status);
-                        var headers = response.Content.Headers;
-                        string contentType = headers.ContentType == null ? "" : headers.ContentType.MediaType;
-                        string mime = audio ? AudioMime(contentType, uri) : VideoMime(contentType, uri);
-                        if (mime == null) throw new IOException("Unsupported video format.");
-                        string forwarded = headers.ContentRange == null ? "" : "Content-Range: " + headers.ContentRange + "\r\n";
-                        if (headers.ContentLength.HasValue) forwarded += "Content-Length: " + headers.ContentLength + "\r\n";
-                        if (status == 206 || response.Headers.AcceptRanges.Contains("bytes")) forwarded += "Accept-Ranges: bytes\r\n";
-                        var body = new VideoBody(await response.Content.ReadAsStreamAsync(), response);
-                        ownsBody = true;
-                        return new Payload(body, mime, status, status == 206 ? "Partial Content" : "OK", forwarded);
+                        return await ReadMediaResponse(response, uri, audio, deadline.Token);
                     }
-                    finally { if (!ownsBody) response.Dispose(); }
                 }
             }
             throw new IOException("Too many video redirects.");
+        }
+
+        internal static async Task<Payload> ReadMediaResponse(HttpResponseMessage response, Uri uri, bool audio,
+            System.Threading.CancellationToken token)
+        {
+            int status = (int)response.StatusCode;
+            if (status != 200 && status != 206) throw new IOException("Media server returned " + status);
+            var headers = response.Content.Headers;
+            string contentType = headers.ContentType == null ? "" : headers.ContentType.MediaType;
+            string mime = audio ? AudioMime(contentType, uri) : VideoMime(contentType, uri);
+            if (mime == null) throw new IOException("Unsupported media format.");
+            var span = headers.ContentRange;
+            long? expected = headers.ContentLength;
+            long? total = expected;
+            string forwarded = "";
+            if (status == 206)
+            {
+                if (span == null || span.Unit != "bytes" || !span.HasRange || !span.HasLength ||
+                    span.To < span.From || span.To >= span.Length || span.To - span.From >= MediaChunkBytes)
+                    throw new IOException("Invalid media range.");
+                expected = span.To - span.From + 1;
+                total = span.Length;
+                forwarded = "Content-Range: " + span + "\r\nAccept-Ranges: bytes\r\n";
+            }
+            if (!audio && total > MaxWebVideoBytes)
+                throw new IOException("Online videos must be 512 MiB or smaller.");
+            if (expected > MediaChunkBytes) throw new IOException("Media server did not send a bounded response.");
+            var body = await ReadBounded(response.Content, MediaChunkBytes, token);
+            if (expected.HasValue && body.Length != expected.Value)
+            {
+                body.Dispose();
+                throw new IOException("Incomplete media response.");
+            }
+            forwarded += "Content-Length: " + body.Length + "\r\n";
+            return new Payload(body, mime, status, status == 206 ? "Partial Content" : "OK", forwarded);
+        }
+
+        internal static RangeHeaderValue BoundedMediaRange(string range)
+        {
+            RangeHeaderValue parsed;
+            if (string.IsNullOrEmpty(range)) return new RangeHeaderValue(0, MediaChunkBytes - 1);
+            if (!RangeHeaderValue.TryParse(range, out parsed) || !string.Equals(parsed.Unit, "bytes", StringComparison.OrdinalIgnoreCase) || parsed.Ranges.Count != 1)
+                throw new IOException("Invalid media range.");
+            var item = parsed.Ranges.Single();
+            if (!item.From.HasValue) return new RangeHeaderValue(null, Math.Min(item.To.Value, MediaChunkBytes));
+            long start = item.From.Value;
+            return new RangeHeaderValue(start, BoundedMediaEnd(start, item.To ?? long.MaxValue));
+        }
+
+        private static long BoundedMediaEnd(long start, long end)
+        {
+            return start + Math.Min(end - start, MediaChunkBytes - 1);
+        }
+
+        private static async Task<MemoryStream> ReadBounded(HttpContent content, int limit, System.Threading.CancellationToken token)
+        {
+            if (content.Headers.ContentLength > limit) throw new IOException("Response exceeds its size limit.");
+            using (var input = await content.ReadAsStreamAsync())
+            {
+                var output = new MemoryStream((int)(content.Headers.ContentLength ?? 0));
+                try
+                {
+                    var buffer = new byte[32768];
+                    int count;
+                    while ((count = await input.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+                    {
+                        if (output.Length + count > limit) throw new IOException("Response exceeds its size limit.");
+                        output.Write(buffer, 0, count);
+                    }
+                    output.Position = 0;
+                    return output;
+                }
+                catch { output.Dispose(); throw; }
+            }
         }
 
         private static string AudioMime(string type, Uri uri)
@@ -416,29 +471,6 @@ namespace TemporalLoom
             catch (UnauthorizedAccessException) { }
         }
 
-        private sealed class VideoBody : Stream
-        {
-            private readonly Stream input;
-            private readonly HttpResponseMessage response;
-            internal VideoBody(Stream input, HttpResponseMessage response){this.input=input;this.response=response;}
-            public override bool CanRead { get { return true; } }
-            public override bool CanSeek { get { return false; } }
-            public override bool CanWrite { get { return false; } }
-            public override long Length { get { return response.Content.Headers.ContentLength ?? throwNotSupported(); } }
-            private static long throwNotSupported() { throw new NotSupportedException(); }
-            public override long Position { get { throw new NotSupportedException(); } set { throw new NotSupportedException(); } }
-            public override int Read(byte[] buffer, int offset, int length)
-            {
-                using (var deadline = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(15)))
-                    return input.ReadAsync(buffer, offset, length, deadline.Token).GetAwaiter().GetResult();
-            }
-            public override void Flush() { }
-            public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); }
-            public override void SetLength(long length) { throw new NotSupportedException(); }
-            public override void Write(byte[] buffer, int offset, int length) { throw new NotSupportedException(); }
-            protected override void Dispose(bool disposing) { if (disposing) response.Dispose(); base.Dispose(disposing); }
-        }
-
         private static Payload OpenLocal(string file, string range, string mime = null)
         {
             var input = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
@@ -454,7 +486,7 @@ namespace TemporalLoom
                     start = first;
                     if (long.TryParse(match.Groups[2].Value, out last)) end = Math.Min(end, last);
                 }
-                else if (valid && long.TryParse(match.Groups[2].Value, out last)) start = Math.Max(0, length - last);
+                else if (valid && long.TryParse(match.Groups[2].Value, out last)) start = Math.Max(0, length - Math.Min(last, MediaChunkBytes));
                 else valid = false;
                 if (!valid || start > end)
                 {
@@ -462,14 +494,15 @@ namespace TemporalLoom
                     return new Payload(new MemoryStream(), mime, 416, "Range Not Satisfiable", "Content-Range: bytes */" + length + "\r\n");
                 }
             }
+            end = BoundedMediaEnd(start, end);
             long count = end - start + 1;
-            bool partial = !string.IsNullOrEmpty(range);
+            bool partial = count < length || !string.IsNullOrEmpty(range);
             string headers = "Accept-Ranges: bytes\r\nContent-Length: " + count + "\r\n" +
                 (partial ? "Content-Range: bytes " + start + "-" + end + "/" + length + "\r\n" : "");
             return new Payload(new SliceStream(input, start, count), mime, partial ? 206 : 200, partial ? "Partial Content" : "OK", headers);
         }
 
-        private sealed class Payload
+        internal sealed class Payload
         {
             internal readonly Stream Body;
             internal readonly int Code;

@@ -1,4 +1,4 @@
-Temporal Loom 1.20 for Windows
+Temporal Loom 1.20.1 for Windows
 
 Extract the ZIP, then open Temporal Loom.exe inside the Temporal Loom folder.
 Keep the other files next to the executable. The included FFmpeg builds the
@@ -51,3 +51,6 @@ for fine adjustments.
 Click a video card to play and loop it on the canvas.
 Shuffle deck changes the order. Drag a card by its top-left handle to move
 it, or focus the handle and press Left or Right.
+
+Online video fragments can be up to 512 MiB each. Larger clips can be
+opened as local files or from a local folder.

@@ -1,6 +1,10 @@
 using System;
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Web.WebView2.Core;
 namespace TemporalLoom
@@ -18,9 +22,14 @@ namespace TemporalLoom
                 {
                     await Until(core, "typeof scrambleInstrument==='function' && typeof loadFragment==='function'", 12);
                     log.WriteLine("Shared interface loaded");
+                    if (Array.IndexOf(args, "--media-only") >= 0)
+                    {
+                        await CheckMediaRanges(core, app, target);
+                        log.WriteLine("Online size cap and bounded media responses passed. A 2.83 GB local file was served in chunks and a multi-chunk MP4 played, sought and looped.");
+                    }
                     await CheckDeck(core, app, target);
                     log.WriteLine("Deck shuffle, mouse drag and keyboard reorder preserved active playback. Video frames changed with classic and organic rendering and resumed after Freeze.");
-                    if (Array.IndexOf(args, "--deck-only") >= 0)
+                    if (Array.IndexOf(args, "--deck-only") >= 0 || Array.IndexOf(args, "--media-only") >= 0)
                     {
                         log.WriteLine("PASS");
                         app.Close();
@@ -104,6 +113,58 @@ namespace TemporalLoom
                 if (!passed) log.WriteLine(await core.ExecuteScriptAsync("JSON.stringify({status:$('status').textContent,clip:$('clipStatus').textContent,sources:assets.map(x=>x.source)})"));
                 app.Close();
             }
+        }
+        private static async Task CheckMediaRanges(CoreWebView2 core, LoomWindow app, string target)
+        {
+            const long large = 2830412708;
+            const int chunk = Sources.MediaChunkBytes;
+            var bounded = Sources.BoundedMediaRange("bytes=2000000000-");
+            if (bounded.ToString() != "bytes=2000000000-2004194303" ||
+                Sources.BoundedMediaRange("bytes=-8000000").ToString() != "bytes=-4194304")
+                throw new Exception("Upstream media range was not limited.");
+            using (var response = new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = new ByteArrayContent(new byte[32]) })
+            {
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("video/mp4");
+                var uri = new Uri("https://test.invalid/fragment.mp4");
+                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 31, large);
+                bool rejected = false;
+                try { await Sources.ReadMediaResponse(response, uri, false, CancellationToken.None); }
+                catch (IOException ex) { rejected = ex.Message.Contains("512 MiB"); }
+                if (!rejected) throw new Exception("An oversized online video was accepted.");
+                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(0, 31, 450L * 1024 * 1024);
+                var accepted = await Sources.ReadMediaResponse(response, uri, false, CancellationToken.None);
+                using (accepted.Body)
+                    if (accepted.Code != 206 || accepted.Body.Length != 32) throw new Exception("A valid online chunk was rejected.");
+            }
+            var items = app.Sources.ReadFolder(Path.Combine(target, "range-media"), "videos");
+            await core.ExecuteScriptAsync(@"
+                const qaRanges=" + LoomWindow.Json(items) + @";
+                const qaLarge=qaRanges.find(file=>file.title==='large-sparse.mp4');
+                const qaMotion=qaRanges.find(file=>file.title==='range-playback.mp4');
+                Promise.all(['bytes=0-','bytes=2000000000-','bytes=-32'].map(async range=>{
+                    const res=await fetch(qaLarge.image,{headers:{Range:range}});
+                    const bytes=await res.arrayBuffer();
+                    return [res.status,res.headers.get('Content-Range'),bytes.byteLength];
+                })).then(results=>window.qaRangeResults=results);
+            ");
+            string expected = LoomWindow.Json(new object[] {
+                new object[]{ 206, "bytes 0-"+(chunk-1)+"/"+large, chunk },
+                new object[]{ 206, "bytes 2000000000-2004194303/"+large, chunk },
+                new object[]{ 206, "bytes "+(large-32)+"-"+(large-1)+"/"+large, 32 }
+            });
+            await Until(core, "JSON.stringify(window.qaRangeResults)===JSON.stringify(" + expected + ")", 10);
+            await core.ExecuteScriptAsync(@"
+                loadImages([qaMotion],++searchToken).then(result=>{
+                  assets=result.loaded;showAssets();$('defaultFx').click();manual=true;
+                  deckStrip.querySelector('.asset').click();manual=true;
+                });
+            ");
+            await Until(core, "assets.length===1&&videoPlayers.get(assets[0])?.currentTime>.3", 15);
+            await core.ExecuteScriptAsync("window.qaRangePlayer=videoPlayers.get(assets[0]);qaRangePlayer.currentTime=11");
+            await Until(core, "!qaRangePlayer.seeking&&qaRangePlayer.currentTime>12", 12);
+            await core.ExecuteScriptAsync("qaRangePlayer.currentTime=13.7");
+            await Until(core, "!qaRangePlayer.paused&&!qaRangePlayer.seeking&&qaRangePlayer.currentTime<3", 10);
+            await core.ExecuteScriptAsync("assets=[];showAssets();applyLook(false)");
         }
         private static async Task CheckDeck(CoreWebView2 core, LoomWindow app, string target)
         {
