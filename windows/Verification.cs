@@ -22,6 +22,14 @@ namespace TemporalLoom
                 {
                     await Until(core, "typeof scrambleInstrument==='function' && typeof loadFragment==='function'", 12);
                     log.WriteLine("Shared interface loaded");
+                    if (Array.IndexOf(args, "--camera-only") >= 0)
+                    {
+                        await CheckCamera(core);
+                        log.WriteLine("Camera opened, captured a still and a clip, and supplied a live fragment. Stopping released both tracks and kept the still and clip in the deck.");
+                        log.WriteLine("PASS");
+                        app.Close();
+                        return;
+                    }
                     if (Array.IndexOf(args, "--performance-only") >= 0)
                     {
                         await CheckSeedTerms(core);
@@ -127,6 +135,24 @@ namespace TemporalLoom
                 if (!passed) log.WriteLine(await core.ExecuteScriptAsync("JSON.stringify({status:$('status').textContent,clip:$('clipStatus').textContent,sources:assets.map(x=>x.source)})"));
                 app.Close();
             }
+        }
+        private static async Task CheckCamera(CoreWebView2 core)
+        {
+            await core.ExecuteScriptAsync("$('source').value='camera';$('source').onchange()");
+            await Until(core, "!cameraPanel.hidden&&!$('excavate').disabled&&$('excavate').textContent==='Open camera'", 4);
+            await core.CallDevToolsProtocolMethodAsync("Runtime.evaluate", LoomWindow.Json(new { expression = "$('excavate').click()", userGesture = true }));
+            await Until(core, "cameraStream&&cameraStream.getAudioTracks().length===0&&cameraPreview.videoWidth>0&&!cameraStill.disabled", 12);
+            await core.ExecuteScriptAsync("window.qaCameraTrack=cameraStream.getVideoTracks()[0];cameraStill.click()");
+            await Until(core, "assets.length===1&&assets[0].title==='Camera still'&&assets[0].img.width>0", 6);
+            await core.ExecuteScriptAsync("cameraLive.click()");
+            await Until(core, "assets.length===2&&cameraLiveItem&&videoPlayers.get(cameraLiveItem)?.readyState>=2", 8);
+            await core.ExecuteScriptAsync("window.qaLiveTrack=cameraLiveItem.liveStream.getVideoTracks()[0];cameraRecord.click()");
+            await Until(core, "cameraRecording?.recorder.state==='recording'", 4);
+            await Task.Delay(1300);
+            await core.ExecuteScriptAsync("cameraRecord.click()");
+            await Until(core, "assets.length===3&&assets.some(item=>item.title==='Camera clip'&&item.kind==='video'&&videoPlayers.get(item)?.currentTime>.05)", 10);
+            await core.ExecuteScriptAsync("$('excavate').click()");
+            await Until(core, "!cameraStream&&!cameraLiveItem&&qaCameraTrack.readyState==='ended'&&qaLiveTrack.readyState==='ended'&&assets.length===2&&assets.some(item=>item.title==='Camera clip')", 6);
         }
         private static async Task CheckSeedTerms(CoreWebView2 core)
         {

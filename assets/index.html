@@ -48,8 +48,17 @@ button.knob-card{display:grid;grid-template-columns:30px 1fr;grid-template-rows:
 .tempo-fields label{display:flex;align-items:center;gap:6px;margin:0}.tempo-fields label[hidden]{display:none}
 .tempo-fields input,.tempo-fields select{margin:0;width:auto}.tempo-fields input:not([type=checkbox]){width:5.5em}
 .fragment-video-start{display:flex;flex-direction:column;gap:2px;margin:3px 0 0;font-size:10px}.fragment-video-start select{margin:0;padding:3px 4px;font-size:11px;min-height:29px}
+
+.camera-capture{margin-top:8px}.camera-capture video{display:block;width:100%;max-height:208px;object-fit:contain;background:#080e0c;border-radius:6px}
+.camera-capture video[hidden]{display:none}.camera-actions{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 4px}
+.camera-actions button{font-size:12px}.camera-actions button:disabled{opacity:.55}
 </style><link id="typeFontCatalog" rel="stylesheet" href="/type-fonts/catalog.css"></head><body><header><div class="brand"><span class="logo" aria-hidden="true">≋</span><div><h1>Temporal Loom</h1><p>Archive fragments. New frequencies.</p></div></div><div class="top-actions"><button hidden id="install">Install</button><button class="quiet" id="save">Save session</button></div></header><nav class="mode-tabs" aria-label="Instrument mode"><button id="studioTab" aria-pressed="true">Studio</button><button id="vfTab" aria-pressed="false">Viewfinder</button><button type="button" id="typeTab" aria-pressed="false">Type</button><span id="topMic"></span></nav>
-<main><aside><div class="eyebrow">THE EXCAVATION</div><h2>Find a memory.</h2><p class="muted">Choose a time. Give it a direction. Play what comes back.</p><div class="grid2"><div><label for="date">Anchor date</label><input id="date" type="date" value="1999-06-15" min="1850-01-01"></div><div><label for="window">Search radius</label><select id="window"><option value="0">Exact day</option><option value="30">± 30 days</option><option value="365" selected>± 1 year</option><option value="1825">± 5 years</option><option value="3650">± 10 years</option><option value="5475">± 15 years</option><option value="7300">± 20 years</option><option value="9125">± 25 years</option><option value="10950">± 30 years</option></select></div></div><label for="words">Seed words</label><input id="words" maxlength="160" placeholder="e.g. neon, night train, moon"><p class="note">Separate words or phrases with commas to build a deck from multiple searches. Leave empty to use the selected genre.</p><details open><summary>Internet Archive image mix</summary><div id="weights"></div></details><label for="genre">Visual genre</label><select id="genre"><option value="none">None · Any genre</option><option value="art">Art &amp; design</option><option value="people">People &amp; everyday life</option><option value="history">History &amp; documentary</option><option value="travel">Travel &amp; landscapes</option><option value="industry">Industry &amp; technology</option><option value="ephemera">Print & ephemera</option><option value="broadcast">Broadcast & music</option><option value="science">Space & science</option><option value="digital">Early web & games</option><option value="nature">Nature & field studies</option><option value="architecture">Cities & architecture</option></select><label for="source">Gather from</label><select id="source"><option value="blended">All sources · Archive, Wayback, Google Images &amp; Wikipedia</option><option value="google">Google Images</option><option value="nasa">NASA video library</option><option value="peertube">PeerTube videos</option><option value="commons-video">Wikimedia Commons videos</option><option value="ia-video">Internet Archive videos · any date</option><option value="wikipedia">Wikipedia</option><option value="ia">Internet Archive only</option><option value="wayback">Wayback · genre collection</option><option value="wayback-site">Wayback · custom website</option><option value="website">Live website</option><option value="folder">Local folder</option></select><button type="button" id="browseGoogle">Open Google Images</button><div id="siteField" hidden><label for="site">Original website or image URL</label><input id="site" type="url" placeholder="https://www.nasa.gov/"><p class="note">Searches image captures under this URL. Custom mode searches this website. Genre mode automatically searches a curated set of relevant sites.</p></div><button class="primary wide" id="excavate">Excavate fragments</button><p class="note" id="dateNote">Internet Archive uses the work’s publication/creation date. Wayback uses its capture date. Genre collections merge both into one fragment deck, with actual dates shown.</p><div class="rule"><div class="eyebrow">THE IMPULSE</div><label for="driver">Motion source</label><select id="driver"><option value="drift">Free drift</option><option value="mic">Live microphone</option><option value="audio">Audio impulses</option><option value="midi">MIDI input</option></select><button id="micButton" class="wide">Mic off</button><label class="file-label">Load audio or video sound<input id="audioFile" type="file" accept="audio/*,video/*"></label><audio id="audio" controls preload="metadata"></audio><p class="note" id="audioName">Audio stays on your device. Tap Play after loading.</p><button class="wide" id="connectMidi">Connect MIDI</button><select id="midiDevices" aria-label="MIDI input device" hidden></select><p class="note" id="midiNote">Notes select fragments. CC1 blends, CC74 warps. A connected controller and Chrome MIDI permission are required.</p></div><details class="rule"><summary>Local images & session import</summary><label class="file-label">Add photos or videos<input id="images" type="file" multiple accept="image/*,video/*"></label><label class="file-label">Restore session JSON<input id="import" type="file" accept="application/json,.json"></label><p class="note">Local files remain local. Save session stores settings and archive references, not local images or audio.</p></details><details><summary>How this instrument works</summary><div class="help"><p>Free drift slowly moves through fragments. Audio mode measures bass energy and transients; stronger impulses advance the image pair. MIDI notes choose images by note number, CC1 scrubs the transition, and CC74 sets distortion.</p><p>Morphing combines crossfades, blend modes, and displaced scanline slices. It is a real-time collage, not an AI semantic interpolation.</p><p>Exact-day searches may return nothing. Increase the radius explicitly; dates are never silently widened. Archive services may be slow, unavailable, or restrict some captures.</p><p>The first display is a synthetic demo. Use Excavate to replace it with actual archived images. Source links below the stage provide provenance; check those sources before reusing work.</p></div></details></aside>
+<main><aside><div class="eyebrow">THE EXCAVATION</div><h2>Find a memory.</h2><p class="muted">Choose a time. Give it a direction. Play what comes back.</p><div class="grid2"><div><label for="date">Anchor date</label><input id="date" type="date" value="1999-06-15" min="1850-01-01"></div><div><label for="window">Search radius</label><select id="window"><option value="0">Exact day</option><option value="30">± 30 days</option><option value="365" selected>± 1 year</option><option value="1825">± 5 years</option><option value="3650">± 10 years</option><option value="5475">± 15 years</option><option value="7300">± 20 years</option><option value="9125">± 25 years</option><option value="10950">± 30 years</option></select></div></div><label for="words">Seed words</label><input id="words" maxlength="160" placeholder="e.g. neon, night train, moon"><p class="note">Separate words or phrases with commas to build a deck from multiple searches. Leave empty to use the selected genre.</p><details open><summary>Internet Archive image mix</summary><div id="weights"></div></details><label for="genre">Visual genre</label><select id="genre"><option value="none">None · Any genre</option><option value="art">Art &amp; design</option><option value="people">People &amp; everyday life</option><option value="history">History &amp; documentary</option><option value="travel">Travel &amp; landscapes</option><option value="industry">Industry &amp; technology</option><option value="ephemera">Print & ephemera</option><option value="broadcast">Broadcast & music</option><option value="science">Space & science</option><option value="digital">Early web & games</option><option value="nature">Nature & field studies</option><option value="architecture">Cities & architecture</option></select><label for="source">Gather from</label><select id="source"><option value="blended">All sources · Archive, Wayback, Google Images &amp; Wikipedia</option><option value="google">Google Images</option><option value="nasa">NASA video library</option><option value="peertube">PeerTube videos</option><option value="commons-video">Wikimedia Commons videos</option><option value="ia-video">Internet Archive videos · any date</option><option value="wikipedia">Wikipedia</option><option value="ia">Internet Archive only</option><option value="wayback">Wayback · genre collection</option><option value="wayback-site">Wayback · custom website</option><option value="website">Live website</option><option value="folder">Local folder</option><option value="camera">Camera</option></select><button type="button" id="browseGoogle">Open Google Images</button><div id="siteField" hidden><label for="site">Original website or image URL</label><input id="site" type="url" placeholder="https://www.nasa.gov/"><p class="note">Searches image captures under this URL. Custom mode searches this website. Genre mode automatically searches a curated set of relevant sites.</p></div><button class="primary wide" id="excavate">Excavate fragments</button><section id="cameraPanel" class="camera-capture" hidden aria-label="Camera capture">
+ <label for="cameraDevice">Camera device</label><select id="cameraDevice"><option value="">Default camera</option></select>
+ <video id="cameraPreview" aria-label="Camera preview" playsinline muted autoplay hidden></video>
+ <div class="camera-actions"><button type="button" id="cameraStill" disabled>Add still</button><button type="button" id="cameraLive" disabled>Add live video</button><button type="button" id="cameraRecord" aria-pressed="false" disabled>Record camera clip</button></div>
+ <small id="cameraStatus" role="status"></small>
+ </section><p class="note" id="dateNote">Internet Archive uses the work’s publication/creation date. Wayback uses its capture date. Genre collections merge both into one fragment deck, with actual dates shown.</p><div class="rule"><div class="eyebrow">THE IMPULSE</div><label for="driver">Motion source</label><select id="driver"><option value="drift">Free drift</option><option value="mic">Live microphone</option><option value="audio">Audio impulses</option><option value="midi">MIDI input</option></select><button id="micButton" class="wide">Mic off</button><label class="file-label">Load audio or video sound<input id="audioFile" type="file" accept="audio/*,video/*"></label><audio id="audio" controls preload="metadata"></audio><p class="note" id="audioName">Audio stays on your device. Tap Play after loading.</p><button class="wide" id="connectMidi">Connect MIDI</button><select id="midiDevices" aria-label="MIDI input device" hidden></select><p class="note" id="midiNote">Notes select fragments. CC1 blends, CC74 warps. A connected controller and Chrome MIDI permission are required.</p></div><details class="rule"><summary>Local images & session import</summary><label class="file-label">Add photos or videos<input id="images" type="file" multiple accept="image/*,video/*"></label><label class="file-label">Restore session JSON<input id="import" type="file" accept="application/json,.json"></label><p class="note">Local files remain local. Save session stores settings and archive references, not local images or audio.</p></details><details><summary>How this instrument works</summary><div class="help"><p>Free drift slowly moves through fragments. Audio mode measures bass energy and transients; stronger impulses advance the image pair. MIDI notes choose images by note number, CC1 scrubs the transition, and CC74 sets distortion.</p><p>Morphing combines crossfades, blend modes, and displaced scanline slices. It is a real-time collage, not an AI semantic interpolation.</p><p>Exact-day searches may return nothing. Increase the radius explicitly; dates are never silently widened. Archive services may be slow, unavailable, or restrict some captures.</p><p>The first display is a synthetic demo. Use Excavate to replace it with actual archived images. Source links below the stage provide provenance; check those sources before reusing work.</p></div></details></aside>
 <section class="workspace"><section id="typePanel" class="type-panel" hidden>
  <div class="type-heading"><h2>Type fragments</h2><button type="button" id="closeType">Back to deck</button></div>
  <div class="type-composer">
@@ -490,9 +499,9 @@ function showAssets(start=0,preserveStage=false){reconcileFragmentDeck();deckShu
      edit.setAttribute('aria-label','Edit type '+asset.title);edit.onclick=()=>editTypeFragment(asset);cell.append(edit);
    }
    if(asset.kind==='video'){
-     const use=document.createElement('button');use.type='button';use.className='use-fragment-audio';
+     if(!asset.silent){const use=document.createElement('button');use.type='button';use.className='use-fragment-audio';
      use.textContent='Use audio';use.setAttribute('aria-label','Use audio from '+asset.title);use.onclick=()=>useFragmentAudio(asset);
-     cell.append(use);if(!asset.liveStream)cell.append(videoStartControl(asset));
+     cell.append(use);}if(!asset.liveStream)cell.append(videoStartControl(asset));
    }cell.prepend(deckHandle(asset,cell));$('assets').append(cell);const source=document.createElement('div');if(asset.link){const link=document.createElement('a');link.href=asset.link;link.target='_blank';link.rel='noopener noreferrer';link.textContent=asset.title;source.append(link);}else source.textContent=asset.title;const meta=document.createElement('p');meta.textContent=asset.source+' · '+asset.date;source.append(meta);$('sources').append(source);});
  $('fragmentCount').textContent=assets.length+' FRAGMENTS';$('stageOrigin').textContent=vf.active&&vf.pair?'VIEWFINDER':assets.some(x=>x.source==='Local file')?'LOCAL MEDIA':assets.some(x=>x.source==='Website')?'LIVE WEBSITE':assets.some(x=>x.source==='Wikimedia Commons')?'VIEWFINDER':(assets.length&&assets.every(x=>x.kind==='type')?'CUSTOM TYPE':'ARCHIVED MATERIAL');if(!preserveStage&&!start){tempoClock.reset();a=0;b=assets.length>1?1:0;morph=0;manual=false;}else if(start===1){b=1;morph=0;}
 }
@@ -641,13 +650,18 @@ function videoStartTime(item,duration,random=Math.random){
  if(mode==='resume'&&item.resumeAt>0&&item.resumeAt<duration)return item.resumeAt;
  return 0;
 }
+function fragmentVideoDuration(item,video){
+ return Number.isFinite(video.duration)?video.duration:item.durationHint;
+}
 function beginVideoPass(item,video){
- if(item.liveStream||!Number.isFinite(video.duration)||video.duration<=0)return;
- const start=videoStartTime(item,video.duration);
+ const duration=fragmentVideoDuration(item,video);
+ if(item.liveStream||!Number.isFinite(duration)||duration<=0)return;
+ const start=videoStartTime(item,duration);
  if(video.currentTime!==start)video.currentTime=start;
 }
 function updateFragmentVideoLoop(item,video){
- video.loop=videoStartMode(item)!=='random'||!Number.isFinite(video.duration)||video.duration<=0;
+ const duration=fragmentVideoDuration(item,video);
+ video.loop=videoStartMode(item)!=='random'||!Number.isFinite(duration)||duration<=0;
 }
 function openFragmentVideo(item){
  const video=preparedVideos.get(item)||makeFragmentVideo();
@@ -909,7 +923,7 @@ $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await docume
 async function download(blob,name){const reader=new FileReader();reader.onload=()=>Mic.save(name,reader.result.split(',')[1]);reader.readAsDataURL(blob);return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 $('snapshot').onclick=()=>{try{canvas.toBlob(blob=>{if(blob)download(blob,'temporal-loom-'+$('date').value+'.png');else report('Could not export this image.');},'image/png');}catch{report('This source prevented image export. Try other archive images or local files.');}};
 $('save').onclick=()=>{const session={tempo:tempoSettings,typeFonts:exportTypeFonts(),mediaMode:mediaMode(),abstractSearch:$("abstractSearch").checked,organicSeed,fragmentRange:readFragmentRange(),defaultLook,rack:rack.save(),mix:Object.fromEntries(types.map(k=>[k,$(k).value])),words:$('words').value,effect:$('effect').value,version:1,date:$('date').value,window:$('window').value,source:$('source').value,genre:$('genre').value,site:['website','wayback-site'].includes($('source').value)?$('site').value:'',warp:Number($('warp').value),sensitivity:Number($('sensitivity').value),assets:assets.filter(x=>x.source!=='Local file').map(({title,date,source,link,image,audio,kind,typeSpec,videoStart})=>kind==="type"?{title,date,source,kind,typeSpec}:{title,date,source,link,image,audio,kind,videoStart})};download(new Blob([JSON.stringify(session,null,2)],{type:'application/json'}),'temporal-loom-session.json');report('Session saved. Local image and audio files are not included.');};
-$('import').onchange=async event=>{const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024){report('Session file is too large.');return;}try{const data=JSON.parse(await file.text());if(data.version!==1||!Array.isArray(data.assets)||data.assets.length>MAX_FRAGMENTS)throw Error('Not a supported session file.');if(!/^\d{4}-\d{2}-\d{2}$/.test(data.date))throw Error('Invalid session date.');for(const item of data.assets){if(validTypeReference(item)||validVideoReference(item)||validSearchReference(item)||validLiveReference(item)||validCommonsReference(item))continue;if(typeof item.image!=='string'||!item.image.startsWith('/api/image?')||!['Internet Archive','Wayback'].includes(item.source)||typeof item.title!=='string'||typeof item.date!=='string'||typeof item.link!=='string'||!/^https:\/\/(?:archive\.org|web\.archive\.org)\//.test(item.link))throw Error('Session has unsupported image references.');}const token=++searchToken;$('excavate').disabled=false;await restoreTypeFonts(data.typeFonts);restoreTempo(data.tempo);if(data.mediaMode||typeof data.videoMode==="boolean")setMediaMode(data.mediaMode,data.videoMode);if(typeof data.abstractSearch==="boolean")setAbstractSearch(data.abstractSearch);if(Number.isFinite(data.organicSeed))organicSeed=data.organicSeed;if(data.fragmentRange)setFragmentRange(data.fragmentRange);markDefault(Boolean(data.defaultLook));rack.restore(data.rack);$('words').value=String(data.words||'').slice(0,160);$('effect').value=data.effect||'Scanlines';for(const k of types)$(k).value=data.mix?.[k]??50;$('date').value=data.date;$('window').value=String(data.window);$('source').value=['blended','ia','wayback','wayback-site','website','folder','google','wikipedia','nasa','peertube','commons-video','ia-video'].includes(data.source)?data.source:'blended';$('genre').value=Array.from($('genre').options).some(o=>o.value===data.genre)?data.genre:'none';$('source').onchange();$('site').value=String(data.site||'');for(const key of ['warp','sensitivity'])if(Number.isFinite(data[key]))$(key).value=Math.max(0,Math.min(1,data[key]));updateOutputs();const result=await loadImages(data.assets,token);if(result&&token===searchToken){assets=result.loaded;if(assets.length)showAssets();report('Session settings restored. '+assets.length+' images available; choose your audio file again.');}}catch(error){report(error.message||'Could not load this session.');}};
+$('import').onchange=async event=>{const file=event.target.files[0];if(!file)return;if(file.size>8*1024*1024){report('Session file is too large.');return;}try{const data=JSON.parse(await file.text());if(data.version!==1||!Array.isArray(data.assets)||data.assets.length>MAX_FRAGMENTS)throw Error('Not a supported session file.');if(!/^\d{4}-\d{2}-\d{2}$/.test(data.date))throw Error('Invalid session date.');for(const item of data.assets){if(validTypeReference(item)||validVideoReference(item)||validSearchReference(item)||validLiveReference(item)||validCommonsReference(item))continue;if(typeof item.image!=='string'||!item.image.startsWith('/api/image?')||!['Internet Archive','Wayback'].includes(item.source)||typeof item.title!=='string'||typeof item.date!=='string'||typeof item.link!=='string'||!/^https:\/\/(?:archive\.org|web\.archive\.org)\//.test(item.link))throw Error('Session has unsupported image references.');}const token=++searchToken;$('excavate').disabled=false;await restoreTypeFonts(data.typeFonts);restoreTempo(data.tempo);if(data.mediaMode||typeof data.videoMode==="boolean")setMediaMode(data.mediaMode,data.videoMode);if(typeof data.abstractSearch==="boolean")setAbstractSearch(data.abstractSearch);if(Number.isFinite(data.organicSeed))organicSeed=data.organicSeed;if(data.fragmentRange)setFragmentRange(data.fragmentRange);markDefault(Boolean(data.defaultLook));rack.restore(data.rack);$('words').value=String(data.words||'').slice(0,160);$('effect').value=data.effect||'Scanlines';for(const k of types)$(k).value=data.mix?.[k]??50;$('date').value=data.date;$('window').value=String(data.window);$('source').value=['blended','ia','wayback','wayback-site','website','folder','google','wikipedia','nasa','peertube','commons-video','ia-video','camera'].includes(data.source)?data.source:'blended';$('genre').value=Array.from($('genre').options).some(o=>o.value===data.genre)?data.genre:'none';$('source').onchange();$('site').value=String(data.site||'');for(const key of ['warp','sensitivity'])if(Number.isFinite(data[key]))$(key).value=Math.max(0,Math.min(1,data[key]));updateOutputs();const result=await loadImages(data.assets,token);if(result&&token===searchToken){assets=result.loaded;if(assets.length)showAssets();report('Session settings restored. '+assets.length+' images available; choose your audio file again.');}}catch(error){report(error.message||'Could not load this session.');}};
 addEventListener('beforeinstallprompt',event=>{event.preventDefault();installEvent=event;});
 $('install').onclick=async()=>{if(installEvent){await installEvent.prompt();installEvent=null;}else report('On Android: open Chrome’s menu, choose Add to Home screen, then Install. This is a web app, not an APK.');};
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -961,15 +975,20 @@ async function gatherDirect(){
  finally{if(token===searchToken)$('excavate').disabled=false;}
 }
 const archiveGather=$('excavate').onclick;
-$('excavate').onclick=()=>['website','folder'].includes($('source').value)?gatherDirect():archiveGather();
+$('excavate').onclick=()=>{
+ const source=$('source').value;
+ if(source==='camera')return toggleCameraCapture();
+ return ['website','folder'].includes(source)?gatherDirect():archiveGather();
+};
 $('source').onchange=()=>{
  syncAbstractSearch();
- const mode=$('source').value,live=mode==='website',folder=mode==='folder';
+ const mode=$('source').value,live=mode==='website',folder=mode==='folder',camera=mode==='camera';
+ showCameraSource(camera);
  $('siteField').hidden=!(live||mode==='wayback-site');
  $('siteField').querySelector('label').textContent=live?'Live webpage or media URL':'Original website or media URL';
  $('siteField').querySelector('p').textContent=live?'Looks for media links and embeds on the page, or accepts a direct file link.':'Searches Wayback captures under this address.';
- $('excavate').textContent=folder?'Choose media folder':live?'Gather website media':'Excavate fragments';
- $('dateNote').textContent=folder?'Searches the folder and its subfolders.':live?'Live websites use the current page.':
+ if(!camera)$('excavate').textContent=folder?'Choose media folder':live?'Gather website media':'Excavate fragments';
+ $('dateNote').textContent=camera?'Capture a still, a live feed, or a video clip.':folder?'Searches the folder and its subfolders.':live?'Live websites use the current page.':
    ['nasa','peertube','commons-video','ia-video'].includes(mode)?'This video catalog searches across all dates.':'Archive searches use the selected date and radius.';
 };
 function validLiveReference(item){
@@ -1384,6 +1403,7 @@ function switchTab(on){
  if(!$('typePanel').hidden)closeType();
  if(on===vf.active)return;
  if(clipRecorder){report('Finish the clip before switching tabs.');return;}
+ if(on&&(cameraStream||cameraOpening||cameraRecording))stopCameraCapture();
  ++searchToken;vf.active=on;$('pairButton').disabled=false;$('excavate').disabled=false;
  document.body.classList.toggle('viewfinding',on);$('radioPanel').hidden=!on;
  $('studioTab').setAttribute('aria-pressed',String(!on));$('vfTab').setAttribute('aria-pressed',String(on));
@@ -2384,7 +2404,7 @@ let thesaurusPromise;
 
 function syncAbstractSearch(){
  const source=$('source').value;
- $('abstractSearchControl').hidden=['website','folder'].includes(source);
+ $('abstractSearchControl').hidden=['website','folder','camera'].includes(source);
 }
 function setAbstractSearch(enabled){
  $('abstractSearch').checked=enabled;
@@ -3052,5 +3072,171 @@ function updateFragmentTempo(now){
  return true;
 }
 
-initTempo();initMediaMode();initFragmentRange();initLooks();updateOutputs();dimensions();requestAnimationFrame(frame);
+initTempo();const cameraPanel=$('cameraPanel'),cameraPreview=$('cameraPreview'),cameraPicker=$('cameraDevice');
+const cameraStill=$('cameraStill'),cameraLive=$('cameraLive'),cameraRecord=$('cameraRecord'),cameraStatus=$('cameraStatus');
+const cameraIsWindows=Boolean(window.chrome?.webview);
+let cameraStream=null,cameraLiveItem=null,cameraRecording=null,cameraOpening=false,cameraRevision=0;
+
+async function listCameras(){
+ const selected=cameraPicker.value;
+ let devices=[];
+ try{devices=await navigator.mediaDevices.enumerateDevices();}catch{}
+ cameraPicker.replaceChildren(new Option('Default camera',''));
+ if(!cameraIsWindows)cameraPicker.add(new Option('Rear camera','environment'));
+ if(!cameraIsWindows)cameraPicker.add(new Option('Front camera','user'));
+ devices.filter(device=>device.kind==='videoinput'&&device.deviceId).forEach((device,index)=>{
+   cameraPicker.add(new Option(device.label||'Camera '+(index+1),'device:'+device.deviceId));
+ });
+ if(Array.from(cameraPicker.options).some(option=>option.value===selected))cameraPicker.value=selected;
+}
+
+function setCameraControls(){
+ const active=Boolean(cameraStream),ready=active&&cameraPreview.readyState>=2;
+ cameraPicker.disabled=cameraOpening||active;
+ cameraPreview.hidden=!active;
+ cameraStill.disabled=!ready;
+ cameraLive.disabled=!ready||Boolean(cameraLiveItem);
+ cameraRecord.disabled=(!ready&&!cameraRecording)||(cameraRecording?.recorder.state==='inactive');
+ cameraRecord.textContent=cameraRecording?'Finish camera clip':'Record camera clip';
+ cameraRecord.setAttribute('aria-pressed',String(Boolean(cameraRecording)));
+ if($('source').value==='camera'){
+   $('excavate').disabled=cameraOpening;
+   $('excavate').textContent=active?'Stop camera':'Open camera';
+ }
+}
+
+function dropLiveCamera(){
+ const item=cameraLiveItem;
+ if(!item)return;
+ const index=assets.indexOf(item);
+ if(index>=0)removeFragment(index);
+ else releaseFragment(item);
+}
+
+function stopCameraCapture(keepClip=false){
+ ++cameraRevision;cameraOpening=false;
+ if(cameraRecording){
+   cameraRecording.keep=keepClip;
+   if(cameraRecording.recorder.state!=='inactive')cameraRecording.recorder.stop();
+ }
+ const stream=cameraStream;
+ cameraStream=null;cameraPreview.srcObject=null;
+ dropLiveCamera();
+ if(stream)for(const track of stream.getTracks())track.stop();
+ cameraStatus.textContent='';setCameraControls();
+}
+
+function showCameraSource(visible){
+ if(!visible&&(cameraStream||cameraOpening||cameraRecording))stopCameraCapture();
+ cameraPanel.hidden=!visible;
+ if(visible){listCameras();setCameraControls();}
+}
+
+async function toggleCameraCapture(){
+ if(cameraStream){stopCameraCapture(true);return;}
+ if(cameraOpening)return;
+ if(!navigator.mediaDevices?.getUserMedia){cameraStatus.textContent='Camera capture is unavailable here.';return;}
+ const revision=++cameraRevision;
+ cameraOpening=true;setCameraControls();cameraStatus.textContent='Opening camera…';
+ const selected=cameraPicker.value;
+ const video={width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}};
+ if(selected.startsWith('device:'))video.deviceId={exact:selected.slice(7)};
+ else if(selected)video.facingMode={exact:selected};
+ else if(!cameraIsWindows)video.facingMode={ideal:'environment'};
+ try{
+   const stream=await navigator.mediaDevices.getUserMedia({video,audio:false});
+   if(revision!==cameraRevision){stream.getTracks().forEach(track=>track.stop());return;}
+   cameraStream=stream;cameraPreview.srcObject=stream;cameraPreview.hidden=false;
+   stream.getVideoTracks()[0].addEventListener('ended',()=>{
+     if(cameraStream===stream){stopCameraCapture();cameraStatus.textContent='The camera disconnected.';}
+   },{once:true});
+   await cameraPreview.play();
+   if(revision!==cameraRevision)return;
+   cameraStatus.textContent='Camera ready.';listCameras();
+ }catch(error){
+   if(revision!==cameraRevision)return;
+   if(cameraStream)stopCameraCapture();
+   cameraStatus.textContent=error.name==='NotAllowedError'?'Camera permission was denied.':
+     ['NotFoundError','OverconstrainedError'].includes(error.name)?'This camera is unavailable. Try Default camera.':
+     'Could not start the camera. Close other apps using it and try again.';
+ }finally{if(revision===cameraRevision){cameraOpening=false;setCameraControls();}}
+}
+
+function roomForCamera(){
+ if(vf.active||$('source').value!=='camera')return false;
+ if(assets.length<MAX_FRAGMENTS)return true;
+ cameraStatus.textContent='Remove a fragment to make room.';return false;
+}
+
+function addCameraToDeck(item){
+ ++searchToken;
+ const index=assets.length;assets.push(item);showAssets(index);selectDeckFragment(index);
+ cameraStatus.textContent=item.title+' added to the deck.';
+}
+
+async function addRecordedCameraMedia(blob,kind,title,duration){
+ if(!blob?.size||!roomForCamera())return;
+ const url=URL.createObjectURL(blob);
+ const item={title,date:'Camera capture',kind,source:'Local file',image:url,silent:true,durationHint:duration};
+ let ready;
+ try{
+   ready=await loadFragment(item,true);
+   if(!roomForCamera()){releaseFragment(ready);return;}
+   addCameraToDeck(ready);
+ }catch{
+   URL.revokeObjectURL(url);cameraStatus.textContent='Could not add the camera capture.';
+ }finally{if(ready)discardPreparedVideo(ready);}
+}
+
+cameraStill.onclick=()=>{
+ if(!roomForCamera()||cameraPreview.readyState<2)return;
+ const frame=document.createElement('canvas');frame.width=cameraPreview.videoWidth;frame.height=cameraPreview.videoHeight;
+ if(!frame.width||!frame.height)return;
+ frame.getContext('2d').drawImage(cameraPreview,0,0);
+ frame.toBlob(blob=>addRecordedCameraMedia(blob,'image','Camera still'),'image/webp',.9);
+};
+
+cameraLive.onclick=()=>{
+ if(!cameraStream||!roomForCamera()||cameraLiveItem)return;
+ const preview=document.createElement('canvas');
+ if(!copyVideoFrame(cameraPreview,preview))return;
+ const track=cameraStream.getVideoTracks()[0].clone();
+ const item={title:'Live camera',date:'Camera capture',source:'Local file',kind:'video',silent:true,
+   liveStream:new MediaStream([track]),image:'',img:preview,poster:thumbnail(preview),resumeAt:0,
+   onRelease(){if(cameraLiveItem===item){cameraLiveItem=null;setCameraControls();}}};
+ track.addEventListener('ended',dropLiveCamera,{once:true});
+ cameraLiveItem=item;
+ addCameraToDeck(item);setCameraControls();
+};
+
+cameraRecord.onclick=()=>{
+ if(cameraRecording){cameraRecording.recorder.stop();setCameraControls();return;}
+ if(!cameraStream||!roomForCamera())return;
+ if(typeof MediaRecorder==='undefined'){cameraStatus.textContent='This device cannot record a camera clip.';return;}
+ try{
+   const mime=['video/webm;codecs=vp8','video/mp4','video/webm'].find(type=>MediaRecorder.isTypeSupported(type));
+   const recorder=new MediaRecorder(cameraStream,{...(mime?{mimeType:mime}:{}),videoBitsPerSecond:4000000});
+   const recording={recorder,chunks:[],keep:true,start:performance.now()};
+   recorder.ondataavailable=event=>{if(event.data.size)recording.chunks.push(event.data);};
+   recorder.onstop=()=>{
+     clearTimeout(recording.limit);cameraRecording=null;setCameraControls();
+     if(recording.keep){
+       const duration=(performance.now()-recording.start)/1000;
+       const clip=new Blob(recording.chunks,{type:recorder.mimeType||recording.chunks[0]?.type||'video/webm'});
+       addRecordedCameraMedia(clip,'video','Camera clip',duration);
+     }
+   };
+   recorder.onerror=()=>{recording.keep=false;cameraStatus.textContent='Camera recording failed.';};
+   recorder.start(1000);
+   cameraRecording=recording;
+   recording.limit=setTimeout(()=>{if(recorder.state!=='inactive'){recorder.stop();setCameraControls();}},120000);
+   cameraStatus.textContent='Recording camera clip · up to 2 minutes.';setCameraControls();
+ }catch{cameraStatus.textContent='Could not record from this camera.';}
+};
+
+cameraPreview.addEventListener('loadeddata',setCameraControls);
+navigator.mediaDevices?.addEventListener('devicechange',()=>{if(!cameraPanel.hidden)listCameras();});
+window.addEventListener('pagehide',()=>{if(cameraStream||cameraOpening)stopCameraCapture();});
+
+initMediaMode();initFragmentRange();initLooks();updateOutputs();dimensions();requestAnimationFrame(frame);
 </script></body></html>

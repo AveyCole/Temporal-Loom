@@ -105,13 +105,18 @@ function videoStartTime(item,duration,random=Math.random){
  if(mode==='resume'&&item.resumeAt>0&&item.resumeAt<duration)return item.resumeAt;
  return 0;
 }
+function fragmentVideoDuration(item,video){
+ return Number.isFinite(video.duration)?video.duration:item.durationHint;
+}
 function beginVideoPass(item,video){
- if(item.liveStream||!Number.isFinite(video.duration)||video.duration<=0)return;
- const start=videoStartTime(item,video.duration);
+ const duration=fragmentVideoDuration(item,video);
+ if(item.liveStream||!Number.isFinite(duration)||duration<=0)return;
+ const start=videoStartTime(item,duration);
  if(video.currentTime!==start)video.currentTime=start;
 }
 function updateFragmentVideoLoop(item,video){
- video.loop=videoStartMode(item)!=='random'||!Number.isFinite(video.duration)||video.duration<=0;
+ const duration=fragmentVideoDuration(item,video);
+ video.loop=videoStartMode(item)!=='random'||!Number.isFinite(duration)||duration<=0;
 }
 function openFragmentVideo(item){
  const video=preparedVideos.get(item)||makeFragmentVideo();

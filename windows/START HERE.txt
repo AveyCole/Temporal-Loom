@@ -13,6 +13,9 @@ Radio Aporee recording with images from its tagged location. Use F11 to toggle
 fullscreen and Esc to exit. After saving an MP4, Show saved clip opens its
 location in File Explorer.
 
+In Studio, choose Camera under Gather from. Select the device and open it to
+add a still, a live video fragment, or a short clip. Camera clips are silent.
+
 Select Detach display above the canvas to open a live output window. It opens
 on a second monitor when available. Drag it to another monitor if needed.
 Use Fullscreen display in the controls, or press F11 or double-click the

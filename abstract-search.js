@@ -2,7 +2,7 @@ let thesaurusPromise;
 
 function syncAbstractSearch(){
  const source=$('source').value;
- $('abstractSearchControl').hidden=['website','folder'].includes(source);
+ $('abstractSearchControl').hidden=['website','folder','camera'].includes(source);
 }
 function setAbstractSearch(enabled){
  $('abstractSearch').checked=enabled;

@@ -209,6 +209,21 @@ html=html.replace('<button id="next">Next fragment</button>',`<button id="next">
 .tempo-fields input,.tempo-fields select{margin:0;width:auto}.tempo-fields input:not([type=checkbox]){width:5.5em}
 .fragment-video-start{display:flex;flex-direction:column;gap:2px;margin:3px 0 0;font-size:10px}.fragment-video-start select{margin:0;padding:3px 4px;font-size:11px;min-height:29px}
 </style>`);
+html=html.replace('<option value="folder">Local folder</option>', '$&<option value="camera">Camera</option>')
+ .replace("'ia-video'].includes(data.source)", "'ia-video','camera'].includes(data.source)")
+ .replace('<p class="note" id="dateNote">',`<section id="cameraPanel" class="camera-capture" hidden aria-label="Camera capture">
+ <label for="cameraDevice">Camera device</label><select id="cameraDevice"><option value="">Default camera</option></select>
+ <video id="cameraPreview" aria-label="Camera preview" playsinline muted autoplay hidden></video>
+ <div class="camera-actions"><button type="button" id="cameraStill" disabled>Add still</button><button type="button" id="cameraLive" disabled>Add live video</button><button type="button" id="cameraRecord" aria-pressed="false" disabled>Record camera clip</button></div>
+ <small id="cameraStatus" role="status"></small>
+ </section><p class="note" id="dateNote">`)
+ .replace('initMediaMode();initFragmentRange();',match=>fs.readFileSync('camera.js','utf8')+'\n'+match)
+ .replace("if(asset.kind==='video'){\n     const use=", "if(asset.kind==='video'){\n     if(!asset.silent){const use=")
+ .replace('cell.append(use);if(!asset.liveStream)', 'cell.append(use);}if(!asset.liveStream)')
+ .replace('</style>',`\n.camera-capture{margin-top:8px}.camera-capture video{display:block;width:100%;max-height:208px;object-fit:contain;background:#080e0c;border-radius:6px}
+.camera-capture video[hidden]{display:none}.camera-actions{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 4px}
+.camera-actions button{font-size:12px}.camera-actions button:disabled{opacity:.55}
+</style>`);
 fs.writeFileSync('assets/index.html',html);
 fs.copyFileSync('archive-pages.js','assets/archive.js');
 fs.mkdirSync('res/drawable-nodpi',{recursive:true});

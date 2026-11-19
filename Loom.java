@@ -6,11 +6,13 @@ import android.media.*;
 import android.content.pm.PackageManager;
 import android.Manifest;
 public class Loom extends Activity {
+    private static final int CAMERA_PERMISSION=6;
     ClipStore clips=new ClipStore(this); ImageSources sources=new ImageSources(this); GoogleImages google; WebView web; Controller controller=new Controller(this);
     volatile double level;
     volatile Thread reader;
     boolean resumed, pending, startAfterResume;
     ValueCallback<android.net.Uri[]> selection;
+    PermissionRequest pendingCamera;
     byte[] exportData;
     protected void onActivityResult(int code,int result,android.content.Intent data){
         super.onActivityResult(code,result,data);
@@ -40,6 +42,24 @@ public class Loom extends Activity {
         web.getSettings().setAllowFileAccess(false);
         web.setWebViewClient(new ArchiveClient(this));
         web.setWebChromeClient(new WebChromeClient(){
+            @Override public void onPermissionRequest(PermissionRequest request){
+                android.net.Uri origin=request.getOrigin();
+                String[] resources=request.getResources();
+                if(!"https".equals(origin.getScheme())||!"loom.invalid".equals(origin.getHost())||
+                   (origin.getPort()!=-1&&origin.getPort()!=443)||origin.getUserInfo()!=null||
+                   resources.length!=1||!PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resources[0])){
+                    request.deny();return;
+                }
+                if(checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED){
+                    request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                }else if(pendingCamera==null){
+                    pendingCamera=request;
+                    requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION);
+                }else request.deny();
+            }
+            @Override public void onPermissionRequestCanceled(PermissionRequest request){
+                if(pendingCamera==request)pendingCamera=null;
+            }
             public boolean onShowFileChooser(WebView v,ValueCallback<android.net.Uri[]> cb,FileChooserParams params){
                 if(selection!=null)selection.onReceiveValue(null);
                 selection=cb;
@@ -147,11 +167,17 @@ public class Loom extends Activity {
     void stopMic(){reader=null;level=0;status("Mic off");}
     public void onRequestPermissionsResult(int r,String[] p,int[] g){
         super.onRequestPermissionsResult(r,p,g);
+        if(r==CAMERA_PERMISSION&&pendingCamera!=null){
+            PermissionRequest request=pendingCamera;pendingCamera=null;
+            if(g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)
+                request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else request.deny();
+        }
         if(r==1){pending=false;if(g.length>0 && g[0]==0){if(resumed)startMic();else startAfterResume=true;}else {status("Mic off");notice("Microphone permission is required for live input");}}
     }
-    protected void onDestroy(){controller.close();google.close();super.onDestroy();}
+    protected void onDestroy(){if(pendingCamera!=null){pendingCamera.deny();pendingCamera=null;}controller.close();google.close();super.onDestroy();}
     protected void onResume(){super.onResume();resumed=true;web.onResume();web.evaluateJavascript("if(typeof setVideoBackgrounded==='function')setVideoBackgrounded(false)",null);clips.prompt();if(startAfterResume){startAfterResume=false;startMic();}}
-    protected void onPause(){resumed=false;web.evaluateJavascript("if(typeof setVideoBackgrounded==='function')setVideoBackgrounded(true);if(typeof stopClip==='function'){if(clipArmed)disarmClip();stopClip();}",null);stopMic();web.onPause();super.onPause();}
+    protected void onPause(){resumed=false;web.evaluateJavascript("if(typeof cameraStream!=='undefined'&&cameraStream)stopCameraCapture();if(typeof setVideoBackgrounded==='function')setVideoBackgrounded(true);if(typeof stopClip==='function'){if(clipArmed)disarmClip();stopClip();}",null);stopMic();web.onPause();super.onPause();}
 }
 
 

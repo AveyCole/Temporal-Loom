@@ -46,6 +46,8 @@ namespace TemporalLoom
             int verification = Array.IndexOf(args, "--verify");
             if (verification >= 0 && verification + 1 < args.Length)
                 AppData = Path.Combine(Path.GetFullPath(args[verification + 1]), "Isolated browser profile");
+            if (Array.IndexOf(args, "--camera-only") >= 0)
+                BrowserOptions.AdditionalBrowserArguments += " --use-fake-device-for-media-stream --use-fake-ui-for-media-stream";
 #endif
             Text = "Temporal Loom";
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -110,8 +112,8 @@ namespace TemporalLoom
                 core.NewWindowRequested += OpenWindow;
                 core.PermissionRequested += (s, e) =>
                 {
-                    bool microphone = e.PermissionKind == CoreWebView2PermissionKind.Microphone && e.IsUserInitiated && IsTrusted(e.Uri);
-                    if (!IsTrusted(e.Uri) || (e.PermissionKind == CoreWebView2PermissionKind.Microphone && !microphone))
+                    bool capture = e.PermissionKind == CoreWebView2PermissionKind.Microphone || e.PermissionKind == CoreWebView2PermissionKind.Camera;
+                    if (!IsTrusted(e.Uri) || (capture && !e.IsUserInitiated))
                         e.State = CoreWebView2PermissionState.Deny;
                 };
                 core.AddWebResourceRequestedFilter(Origin + "/*", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSourceKinds.All);

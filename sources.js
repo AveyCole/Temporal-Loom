@@ -36,15 +36,20 @@ async function gatherDirect(){
  finally{if(token===searchToken)$('excavate').disabled=false;}
 }
 const archiveGather=$('excavate').onclick;
-$('excavate').onclick=()=>['website','folder'].includes($('source').value)?gatherDirect():archiveGather();
+$('excavate').onclick=()=>{
+ const source=$('source').value;
+ if(source==='camera')return toggleCameraCapture();
+ return ['website','folder'].includes(source)?gatherDirect():archiveGather();
+};
 $('source').onchange=()=>{
  syncAbstractSearch();
- const mode=$('source').value,live=mode==='website',folder=mode==='folder';
+ const mode=$('source').value,live=mode==='website',folder=mode==='folder',camera=mode==='camera';
+ showCameraSource(camera);
  $('siteField').hidden=!(live||mode==='wayback-site');
  $('siteField').querySelector('label').textContent=live?'Live webpage or media URL':'Original website or media URL';
  $('siteField').querySelector('p').textContent=live?'Looks for media links and embeds on the page, or accepts a direct file link.':'Searches Wayback captures under this address.';
- $('excavate').textContent=folder?'Choose media folder':live?'Gather website media':'Excavate fragments';
- $('dateNote').textContent=folder?'Searches the folder and its subfolders.':live?'Live websites use the current page.':
+ if(!camera)$('excavate').textContent=folder?'Choose media folder':live?'Gather website media':'Excavate fragments';
+ $('dateNote').textContent=camera?'Capture a still, a live feed, or a video clip.':folder?'Searches the folder and its subfolders.':live?'Live websites use the current page.':
    ['nasa','peertube','commons-video','ia-video'].includes(mode)?'This video catalog searches across all dates.':'Archive searches use the selected date and radius.';
 };
 function validLiveReference(item){

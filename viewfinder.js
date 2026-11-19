@@ -77,6 +77,7 @@ function switchTab(on){
  if(!$('typePanel').hidden)closeType();
  if(on===vf.active)return;
  if(clipRecorder){report('Finish the clip before switching tabs.');return;}
+ if(on&&(cameraStream||cameraOpening||cameraRecording))stopCameraCapture();
  ++searchToken;vf.active=on;$('pairButton').disabled=false;$('excavate').disabled=false;
  document.body.classList.toggle('viewfinding',on);$('radioPanel').hidden=!on;
  $('studioTab').setAttribute('aria-pressed',String(!on));$('vfTab').setAttribute('aria-pressed',String(on));
