@@ -1,0 +1,7 @@
+.control-grid,#weights,.knob-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.rack-tabs{display:flex;gap:4px;margin:7px 0}.rack-tabs button{flex:1;min-width:0;padding:8px 2px}.rack-tabs button[aria-pressed=true]{color:#101817;background:#c8e998}
+.knob-grid>label,.knob-grid>button:not(.knob-card){grid-column:1/-1}.knob-grid label:has(select){margin:2px 0}
+button.knob-card{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;column-gap:4px;align-content:center;align-items:center;min-width:0;min-height:49px;padding:4px;text-align:left;font-size:11px;line-height:1.12;touch-action:auto;user-select:none;-webkit-user-select:none;color:#d9e6df}.knob-card b{font:11px monospace;color:#c8e998}
+.small-dial,.big-dial{display:block;position:relative;border:1px solid #768781;border-radius:50%;background:radial-gradient(circle at 35% 25%,#40504b,#17211e 75%)}.small-dial{width:27px;height:27px;grid-row:1/3}.small-dial i,.big-dial i{position:absolute;inset:8%;transform:rotate(var(--angle));pointer-events:none}.small-dial i:before,.big-dial i:before{content:"";display:block;margin:auto;width:3px;height:34%;background:#cbef8e;border-radius:3px}
+
+.knob-card.adjusting{outline:2px solid var(--acid);background:#34483e}

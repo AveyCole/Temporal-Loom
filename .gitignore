@@ -1,0 +1,13 @@
+/build/
+/tmp/
+/output/
+/original/
+/Temporal-Loom.apk
+/Temporal-Loom.apk.idsig
+/windows/dist/
+/windows/obj/
+/windows/vendor/*
+!/windows/vendor/audio/
+*.p12
+*.jks
+*.keystore

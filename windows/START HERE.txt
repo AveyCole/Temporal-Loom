@@ -1,0 +1,49 @@
+Temporal Loom 1.17 for Windows
+
+Extract the ZIP, then open Temporal Loom.exe inside the Temporal Loom folder.
+Keep the other files next to the executable. The included FFmpeg builds the
+shareable MP4 recordings.
+
+This build is for 64-bit Windows 10 and 11. It uses Microsoft Edge WebView2
+Runtime, which Windows normally provides. If needed, get the Evergreen runtime
+from https://developer.microsoft.com/microsoft-edge/webview2/#download-section
+
+Studio opens local media and searches online sources. Viewfinder pairs a
+Radio Aporee recording with images from its tagged location. Use F11 to toggle
+fullscreen and Esc to exit. After saving an MP4, Show saved clip opens its
+location in File Explorer.
+
+Select Detach display above the canvas to open a live output window. It opens
+on a second monitor when available. Drag it to another monitor if needed.
+Use Fullscreen display in the controls, or press F11 or double-click the
+output. Press Esc in the output to leave fullscreen. Close the output window
+or select Reattach display to return to one window.
+
+Record starts immediately, even with playback stopped. To arm recording
+instead, open Rec trigger and select On playback or mic input.
+
+Use Mic input to select a device. Windows may ask for access the first time
+you turn on the microphone. The list updates with device names after access.
+For a multichannel interface, select its ASIO driver, turn on the mic, then
+select an individual input or a stereo pair under Input channel. Select Multi Track on a Zoom L6max to
+expose its individual inputs. If the driver stops sending audio, Loom clears
+the meter and attempts to reconnect to the same device and channel.
+
+Choose Photos, Videos, or Both under Media to find before searching in
+Studio or Viewfinder. Photos includes stills such as posters and diagrams.
+Google Images supplies stills. NASA, PeerTube, and Wikimedia Commons supply
+videos. Internet Archive videos · any date searches without a date filter.
+In Studio, enable Abstract search to try related phrases
+when the first search runs short. Search terms tried lists the attempts.
+Select Use audio on a video card to play its soundtrack. Restore previous
+audio above the canvas brings back the audio source you were using.
+To use a YouTube video live, open it in a separate
+browser window and select that window with Capture window in Studio.
+
+Open Type to make custom text fragments or import a font. Browse the grouped
+font menu or use the arrows to audition faces. Add a phrase as one fragment,
+or split it into a fragment per line or word. Use Edit type on a deck card
+to revise it.
+
+Drag a slider to change a parameter. Tab to a slider and use the arrow keys
+for fine adjustments.
