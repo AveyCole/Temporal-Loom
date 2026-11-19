@@ -2,7 +2,7 @@
 
 Temporal Loom is a live visual instrument for Windows and Android. Search for photos and video clips, build a deck from local media or custom type, and drive morphs with a microphone, an audio file, or a video's soundtrack.
 
-[Download page](https://aveycole.github.io/Temporal-Loom/) · [Windows 1.20.1](https://github.com/AveyCole/Temporal-Loom/releases/tag/v1.20.1) · [Android 1.17](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.17/Temporal-Loom-1.17-Android.apk) · [User manual](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.20.1/Temporal-Loom-1.20.1-User-Manual.pdf)
+[Download page](https://aveycole.github.io/Temporal-Loom/) · [Release 1.21](https://github.com/AveyCole/Temporal-Loom/releases/tag/v1.21) · [User manual](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.21/Temporal-Loom-1.21-User-Manual.pdf)
 
 ## Install
 
@@ -16,7 +16,8 @@ Temporal Loom is a live visual instrument for Windows and Android. Search for ph
 - In Viewfinder, pair a Radio Aporee field recording with media from its tagged area.
 - Use **Type** to make fragments from your own words. **Use audio** on a video card selects its soundtrack, and **Restore previous audio** switches back.
 - On Windows, **Detach display** sends the visuals to another window. Use **Fullscreen display** for a clean second-monitor output.
-- In Windows 1.20, click a video card to play it on the canvas. Use **Shuffle deck** to randomize the card order, or drag a card by its top-left handle to move it.
+- Click a video card to play it on the canvas and set **Video start** to Resume, Beginning, or Random point. Open **Tempo sync** below the canvas to time fragment swaps to a beat division.
+- Choose **Camera** under **Gather from** to add a still, live video, or a short recording directly to the deck.
 
 ## Build from source
 
