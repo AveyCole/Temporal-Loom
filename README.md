@@ -11,7 +11,7 @@ Temporal Loom is a live visual instrument for Windows, macOS, and Android. Searc
 
 ## macOS
 
-Apple Silicon Mac builds and platform notes are linked from the [download page](https://aveycole.github.io/Temporal-Loom/#downloads). Build with `bash macos/build.sh` using Node.js 22 or later and Xcode Command Line Tools. See [macos/README.md](macos/README.md) for the feature comparison and verification details.
+Apple Silicon Mac builds and platform notes are linked from the [download page](https://aveycole.github.io/Temporal-Loom/#downloads). Build with `bash macos/build.sh` using Node.js 22 or later with Xcode Command Line Tools and `pkg-config`. See [macos/README.md](macos/README.md) for the feature comparison and verification details.
 
 ## Use
 

@@ -23,7 +23,7 @@ ASIO is specific to Windows. The Mac build uses CoreAudio devices; channel avail
 
 ## Build
 
-Install Node.js 22 or later and Xcode Command Line Tools, then run:
+Install Node.js 22 or later , Xcode Command Line Tools, and `pkg-config` (for example, `brew install pkg-config`), then run:
 
 ```sh
 bash macos/build.sh
