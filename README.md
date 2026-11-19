@@ -2,7 +2,7 @@
 
 Temporal Loom is a live visual instrument for Windows and Android. Search for photos and video clips, build a deck from local media or custom type, and drive morphs with a microphone, an audio file, or a video's soundtrack.
 
-[Download page](https://aveycole.github.io/Temporal-Loom/) · [Windows 1.20](https://github.com/AveyCole/Temporal-Loom/releases/tag/v1.20) · [Android 1.17](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.17/Temporal-Loom-1.17-Android.apk) · [User manual](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.20/Temporal-Loom-1.20-User-Manual.pdf)
+[Download page](https://aveycole.github.io/Temporal-Loom/) · [Windows 1.20.1](https://github.com/AveyCole/Temporal-Loom/releases/tag/v1.20.1) · [Android 1.17](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.17/Temporal-Loom-1.17-Android.apk) · [User manual](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.20.1/Temporal-Loom-1.20.1-User-Manual.pdf)
 
 ## Install
 
