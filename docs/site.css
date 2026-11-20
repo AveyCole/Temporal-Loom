@@ -40,6 +40,9 @@ h1{font-size:clamp(4rem,8vw,7.9rem);letter-spacing:-.073em}
 .section-head h2{font-size:clamp(2rem,4vw,3.4rem)}
 .section-head a{color:var(--muted)}
 .packages,.workflows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.packages{grid-template-columns:repeat(4,minmax(0,1fr))}
+.packages .package-note{font-size:.9rem}
+@media(min-width:741px) and (max-width:1000px){.packages{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .packages article{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:22px;display:flex;flex-direction:column;gap:12px}
 .packages h3{font-size:1.42rem;font-weight:600;line-height:1.15}
 .packages p,.workflows p{color:var(--muted)}

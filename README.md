@@ -1,6 +1,6 @@
 # Temporal Loom
 
-Temporal Loom is a live visual instrument for Windows and Android. Search for photos and video clips, build a deck from local media or custom type, and drive morphs with a microphone, an audio file, or a video's soundtrack.
+Temporal Loom is a live visual instrument for Windows, macOS, and Android. Search for photos and video clips, build a deck from local media or custom type, and drive morphs with a microphone, an audio file, or a video's soundtrack.
 
 [Download page](https://aveycole.github.io/Temporal-Loom/) · [Release 1.21](https://github.com/AveyCole/Temporal-Loom/releases/tag/v1.21) · [User manual](https://github.com/AveyCole/Temporal-Loom/releases/download/v1.21/Temporal-Loom-1.21-User-Manual.pdf)
 
@@ -8,6 +8,10 @@ Temporal Loom is a live visual instrument for Windows and Android. Search for ph
 
 - **Windows 10 or 11, 64-bit**. Extract the release ZIP and open `Temporal Loom.exe`. Keep the companion files alongside the executable. Install Microsoft's WebView2 Evergreen Runtime if Windows prompts for it.
 - **Android 8 or later**. Open the release APK and follow the installation prompt.
+
+## macOS
+
+Apple Silicon Mac builds and platform notes are linked from the [download page](https://aveycole.github.io/Temporal-Loom/#downloads). Build with `bash macos/build.sh` using Node.js 22 or later with Xcode Command Line Tools and `pkg-config`. See [macos/README.md](macos/README.md) for the feature comparison and verification details.
 
 ## Use
 

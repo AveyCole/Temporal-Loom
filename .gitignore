@@ -11,3 +11,11 @@
 *.p12
 *.jks
 *.keystore
+
+/macos/node_modules/
+/macos/dist/
+/macos/assets/
+/macos/web-template/
+/macos/.electron-cache/
+/macos/loom.iconset/
+/macos/vendor/
