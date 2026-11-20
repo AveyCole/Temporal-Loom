@@ -6,8 +6,8 @@ const Mic=(()=>{
  const channelField=document.getElementById('micChannelField');
  const signal=document.getElementById('micSignal');
  let deviceId=localStorage.getItem('windowsMicInput')||'';
- let asioDevices=[],asioDriver='',asioValues=[],asioReply,enumeration=0;
- let stream,context,meter,samples,pending=false,level=0;
+ let asioDevices=[],asioDriver='',asioValues=[],asioBands=null,asioReply,enumeration=0;
+ let stream,context,meter,samples,micSpectrumReader,pending=false,level=0,detailed=false;
  let audioRequestId=0;
  const audioRequests=new Map();
  function decodeVideoAudio(asset){
@@ -48,6 +48,7 @@ const Mic=(()=>{
  }
  function clearAsioLevels(){
    asioValues=[];
+   asioBands=null;
    signal.value=0;
  }
  function selectAsioChannels(){
@@ -100,10 +101,10 @@ const Mic=(()=>{
      next=await navigator.mediaDevices.getUserMedia({audio});
      nextContext=new AudioContext();
      await nextContext.resume();
-     const nextMeter=nextContext.createAnalyser();nextMeter.fftSize=1024;
+     const nextMeter=nextContext.createAnalyser();
      nextContext.createMediaStreamSource(next).connect(nextMeter);
      stopInput();
-     stream=next;context=nextContext;meter=nextMeter;samples=new Float32Array(meter.fftSize);
+     stream=next;context=nextContext;meter=nextMeter;configureMicMeter();
      stream.getAudioTracks()[0].onended=()=>{stopInput();micState('Mic off');};
      micState('Mic on');
      return true;
@@ -119,6 +120,7 @@ const Mic=(()=>{
    if(stream)for(const track of stream.getTracks())track.stop();
    if(context)context.close().catch(()=>{});
    stream=context=meter=samples=null;level=0;
+   micSpectrumReader=null;
  }
  function amplitude(){
    if(asioDriver){
@@ -131,6 +133,21 @@ const Mic=(()=>{
    let square=0;for(const sample of samples)square+=sample*sample;
    level=Math.min(1,Math.sqrt(square/samples.length)*9.36);
    return level;
+ }
+ function spectrum(){
+   if(asioDriver)return asioBands;
+   if(!meter)return null;
+   micSpectrumReader??=makeSpectrumReader();
+   return micSpectrumReader(meter,context.sampleRate);
+ }
+ function configureMicMeter(){
+   if(!meter)return;
+   meter.fftSize=detailed?2048:1024;meter.smoothingTimeConstant=detailed ? .16 : .8;
+   samples=new Float32Array(meter.fftSize);micSpectrumReader=null;
+ }
+ function setDetailedAnalysis(enabled){
+   if(detailed===enabled)return;
+   detailed=enabled;asioBands=null;configureMicMeter();send('asioAnalysis',{enabled});
  }
  window.addEventListener('pagehide',stopInput);
  channelPicker.onchange=()=>{
@@ -148,11 +165,15 @@ const Mic=(()=>{
  listInputs();
  send('asioList');
  return {
-   toggle,amplitude,folder:media=>send('folder',{media}),midi:()=>send('midi'),
+   toggle,amplitude,spectrum,setDetailedAnalysis,recordingStream:()=>stream,
+   captureClipMic:token=>send('asioClipMic',{token}),folder:media=>send('folder',{media}),midi:()=>send('midi'),
    refreshInputs:listInputs,
    asioDrivers:names=>{asioDevices=names;listInputs();},
    asioOpened:(channels,error,stereo)=>{const reply=asioReply;asioReply=null;if(reply)reply({channels,error,stereo});},
-   asioLevels:values=>{asioValues=values;signal.value=amplitude();},
+   asioLevels:(values,bands)=>{
+     asioValues=values;signal.value=amplitude();
+     asioBands=bands?{input:bands[0],bass:bands[1],mid:bands[2],high:bands[3],peak:bands[4]}:null;
+   },
    asioRecovering:()=>{
      if(!asioDriver)return;
      clearAsioLevels();

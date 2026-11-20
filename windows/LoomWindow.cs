@@ -200,6 +200,8 @@ namespace TemporalLoom
                     case "asioList": asio.List(); break;
                     case "asioOpen": asio.Open((string)message["driver"]); break;
                     case "asioChannels": asio.SelectChannels((int)message["left"], (int)message["right"]); break;
+                    case "asioAnalysis": asio.SetDetailedAnalysis((bool)message["enabled"]); break;
+                    case "asioClipMic": asio.SetClipCapture((int)message["token"]); break;
                     case "asioSettings": asio.ShowSettings(); break;
                     case "asioStop": asio.Stop(); break;
                     case "decodeVideoAudio": await DecodeVideoAudio(message, e); break;

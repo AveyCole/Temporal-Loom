@@ -18,6 +18,9 @@ const updateAudioMotion=makeAudioMotion();
 let oldBins=null,fluxMean=.012,attack=0;
 function readDriver(driver,dt){
  const file=driver==='audio' && analyser && !$('audio').paused;
+ if(audioResponse==='maximum'&&(driver==='mic'||driver==='audio')){
+   return readMaximumMotion(driver,dt,Number($('sensitivity').value),file);
+ }
  let input=0,low=0,high=0;
  if(driver==='mic')input=Mic.amplitude();
  if(file){

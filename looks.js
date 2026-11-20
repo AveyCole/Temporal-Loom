@@ -88,7 +88,7 @@ function initLooks(){
  select.append(organic,classic);
  $('mutateMorph').onclick=mutateMorph;
  $('scramble').onclick=scrambleInstrument;
- $('shuffleFx').onclick=()=>applyLook(false);$('defaultFx').onclick=()=>applyLook(true);
+ $('shuffleFx').onclick=()=>applyLook(false);$('defaultFx').onclick=()=>{applyLook(true);setAudioResponse('standard');};
  applyLook(defaultLook);
 }
 function removeFragment(index){

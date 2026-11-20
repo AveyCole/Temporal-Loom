@@ -56,7 +56,7 @@ const rack=installRack`);
 html=html.replace('async function loadImages',()=>fs.readFileSync('emblem.js','utf8')+'\nasync function loadImages')
 .replace('if(img.naturalWidth>0)results','if(img.naturalWidth>0 && (item.source==="Local file" || !isArchiveEmblem(img)))results')
 .replace('Search found records, but their images were unavailable.', 'No usable images remained after checking for unavailable images and archive logos.')
-.replace(/function frame\(ms\)\{([\s\S]*?lastFrame=ms;)[\s\S]*?energy=Math.min\(1,energy\);/,(_,clock)=>fs.readFileSync('motion.js','utf8')+'\nfunction frame(ms){'+clock+`
+.replace(/function frame\(ms\)\{([\s\S]*?lastFrame=ms;)[\s\S]*?energy=Math.min\(1,energy\);/,(_,clock)=>fs.readFileSync('audio-response.js','utf8')+'\n'+fs.readFileSync('motion.js','utf8')+'\nfunction frame(ms){'+clock+`
  const driver=$('driver').value,reactive=driver==='audio'||driver==='mic',motion=readDriver(driver,delta);
  if(reactive)energy=Math.min(1,motion.level+motion.pulse*.35);else energy*=.94;
  const motionDelta=delta*motion.speed;
@@ -224,6 +224,28 @@ html=html.replace('<option value="folder">Local folder</option>', '$&<option val
 .camera-capture video[hidden]{display:none}.camera-actions{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 4px}
 .camera-actions button{font-size:12px}.camera-actions button:disabled{opacity:.55}
 </style>`);
+html=html.replace('<button type="button" id="mutateMorph"',`<label class="audio-response-control">Audio response <select id="audioResponse"><option value="standard">Standard</option><option value="maximum">Maximum</option></select></label><button type="button" id="mutateMorph"`)
+ .replace('analyser.fftSize=1024;analyser.smoothingTimeConstant=.45;freq=new Uint8Array(analyser.frequencyBinCount);','configureFileResponseMeter();')
+ .replace('const session={tempo:', 'const session={audioResponse,tempo:')
+ .replace('restoreTempo(data.tempo);', 'restoreTempo(data.tempo);setAudioResponse(data.audioResponse);')
+ .replace('morph+=motionDelta*(reactive?.32:.075)*rack.state.morphRate;if(morph>=1){a=b;b=(b+1)%deck().length;morph=0;}',`const rate=rack.state.morphRate;
+   morph+=motion.dynamic?delta*Math.min(3.1,motion.speed*.46*rate):motionDelta*(reactive?.32:.075)*rate;
+   const hit=motion.dynamic?.onset&&rate>0&&morph>.18&&ms-lastBeat>230;
+   if(morph>=1||hit){a=b;b=(b+1)%deck().length;morph=0;if(motion.dynamic)lastBeat=ms;}`)
+ .replace('rack.process(ctx,images,delta,motion);','rack.process(ctx,images,delta,motion);drawMaximumResponse(ctx,motion,motionTime);')
+ .replace('</style>','.audio-response-control{display:flex;align-items:center;gap:8px;margin:8px 0}.audio-response-control select{width:auto;margin:0}</style>');
+html=html.replace('clipAudio=audioContext.createMediaStreamDestination();analyser.connect(clipAudio);','connectClipAudio();')
+ .replace('function dimensions(){','function dimensions(){if(clipResolution||frozen)return;')
+ .replace(/function micState\(label\)\{[^\n]+\}/,match=>match.slice(0,-1)+'syncClipMic();}')
+ .replaceAll('Mic.toggle()', 'micInput.toggle()')
+ .replaceAll('Mic.amplitude()', 'micInput.amplitude()')
+ .replaceAll('Mic.spectrum?.()', 'micInput.spectrum?.()')
+ .replaceAll('Mic.recordingStream?.()', 'micInput.recordingStream?.()')
+ .replace('initMediaMode();initFragmentRange();',match=>fs.readFileSync('mic-input.js','utf8')+'\n'+match);
+if(process.env.LOOM_LAYOUT!=='classic'){
+ html=html.replace('</style>',()=>fs.readFileSync('studio-layout.css','utf8')+'</style>')
+  .replace('initMediaMode();initFragmentRange();',match=>fs.readFileSync('studio-layout.js','utf8')+'\ninstallStudioLayout();'+match);
+}
 fs.writeFileSync('assets/index.html',html);
 fs.copyFileSync('archive-pages.js','assets/archive.js');
 fs.mkdirSync('res/drawable-nodpi',{recursive:true});

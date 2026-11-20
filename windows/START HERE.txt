@@ -1,4 +1,4 @@
-Temporal Loom 1.21 for Windows
+Temporal Loom 1.26 for Windows
 
 Extract the ZIP, then open Temporal Loom.exe inside the Temporal Loom folder.
 Keep the other files next to the executable. The included FFmpeg builds the
@@ -60,6 +60,10 @@ it, or focus the handle and press Left or Right.
 
 Open Tempo sync below the canvas, enable it, and set the BPM and division.
 At 120 BPM, 1/8 swaps fragments every 250 ms. Use Custom for other fractions.
+
+Choose Maximum under Audio response below the canvas. Bass bends and zooms
+the canvas, mids shape color and trails, and highs scatter the grains.
+Tempo sync continues to control the timing of fragment swaps when enabled.
 
 Online video fragments can be up to 512 MiB each. Larger clips can be
 opened as local files or from a local folder.

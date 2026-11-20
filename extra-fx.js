@@ -99,14 +99,14 @@ function createSpatialFX(){
  function process(ctx,state,time,motion){
    const mode=state.spatial;
    if(mode!==lastMode){clear();lastMode=mode;}
-   const mix=state.spaceMix/100;
+   const mix=Math.min(1,state.spaceMix/100*(1+(motion.dynamic?.mid||0)*.6));
    if(mode==='Off'||!mix)return;
    const w=ctx.canvas.width,h=ctx.canvas.height;
    if(!w||!h)return;
-   const scale=Math.min(1,800/Math.max(w,h)),sw=Math.max(1,Math.round(w*scale)),sh=Math.max(1,Math.round(h*scale));
+   const scale=Math.min(1,(clipResolution?1600:800)/Math.max(w,h)),sw=Math.max(1,Math.round(w*scale)),sh=Math.max(1,Math.round(h*scale));
    if((snapshot.width!==sw||snapshot.height!==sh)&&past.length){past.length=0;lastTime=-Infinity;}
    copy(ctx.canvas,snapshot,sw,sh);
-   const spread=state.spaceScale/100,movement=spread*(.5+.5*motion.level)+motion.pulse*.23;
+   const spread=state.spaceScale/100,movement=spread*(.5+.5*motion.level+(motion.dynamic?.bass||0)*.6)+motion.pulse*.23;
    if(mode==='Frame ghosts'||mode==='Time mosaic'){
      if(!past.length||time-lastTime>=.13){
        const next=past.length>=6?past.pop():document.createElement('canvas');

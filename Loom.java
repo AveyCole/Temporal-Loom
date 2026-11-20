@@ -6,13 +6,16 @@ import android.media.*;
 import android.content.pm.PackageManager;
 import android.Manifest;
 public class Loom extends Activity {
-    private static final int CAMERA_PERMISSION=6;
+    private static final int CAMERA_PERMISSION=6, MICROPHONE_PERMISSION=1;
     ClipStore clips=new ClipStore(this); ImageSources sources=new ImageSources(this); GoogleImages google; WebView web; Controller controller=new Controller(this);
-    volatile double level;
-    volatile Thread reader;
-    boolean resumed, pending, startAfterResume;
+    boolean resumed;
+    volatile Thread nativeMic;
+    volatile double nativeLevel;
+    volatile int nativeClipToken;
+    final java.util.concurrent.atomic.AtomicBoolean nativeDispatch=new java.util.concurrent.atomic.AtomicBoolean();
     ValueCallback<android.net.Uri[]> selection;
-    PermissionRequest pendingCamera;
+    PermissionRequest pendingCapture;
+    int pendingCaptureCode;
     byte[] exportData;
     protected void onActivityResult(int code,int result,android.content.Intent data){
         super.onActivityResult(code,result,data);
@@ -45,20 +48,23 @@ public class Loom extends Activity {
             @Override public void onPermissionRequest(PermissionRequest request){
                 android.net.Uri origin=request.getOrigin();
                 String[] resources=request.getResources();
+                boolean video=resources.length==1&&PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resources[0]);
+                boolean audio=resources.length==1&&PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resources[0]);
                 if(!"https".equals(origin.getScheme())||!"loom.invalid".equals(origin.getHost())||
                    (origin.getPort()!=-1&&origin.getPort()!=443)||origin.getUserInfo()!=null||
-                   resources.length!=1||!PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resources[0])){
+                   (!video&&!audio)){
                     request.deny();return;
                 }
-                if(checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED){
-                    request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
-                }else if(pendingCamera==null){
-                    pendingCamera=request;
-                    requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION);
+                String permission=video?Manifest.permission.CAMERA:Manifest.permission.RECORD_AUDIO;
+                if(checkSelfPermission(permission)==PackageManager.PERMISSION_GRANTED){
+                    request.grant(resources);
+                }else if(pendingCapture==null){
+                    pendingCapture=request;pendingCaptureCode=video?CAMERA_PERMISSION:MICROPHONE_PERMISSION;
+                    requestPermissions(new String[]{permission},pendingCaptureCode);
                 }else request.deny();
             }
             @Override public void onPermissionRequestCanceled(PermissionRequest request){
-                if(pendingCamera==request)pendingCamera=null;
+                if(pendingCapture==request)pendingCapture=null;
             }
             public boolean onShowFileChooser(WebView v,ValueCallback<android.net.Uri[]> cb,FileChooserParams params){
                 if(selection!=null)selection.onReceiveValue(null);
@@ -109,6 +115,10 @@ public class Loom extends Activity {
         else super.onBackPressed();
     }
     public class Input {
+        @JavascriptInterface public void startNativeMic(){runOnUiThread(Loom.this::startNativeMic);}
+        @JavascriptInterface public void stopNativeMic(){Loom.this.stopNativeMic();}
+        @JavascriptInterface public double nativeAmplitude(){return nativeLevel;}
+        @JavascriptInterface public void captureClipMic(int token){nativeClipToken=token;}
         @JavascriptInterface public void googleSearch(int id,String query,int offset){runOnUiThread(()->google.search(id,query,offset));}
         @JavascriptInterface public void browseGoogle(String terms){runOnUiThread(()->google.show(terms));}
         @JavascriptInterface public void full(boolean value){runOnUiThread(()->fullscreen(value));}
@@ -132,52 +142,53 @@ public class Loom extends Activity {
             sources.fileTypes.remove(path);
         }
         @JavascriptInterface public void midi(){runOnUiThread(()->controller.choose());}
-        @JavascriptInterface public double amplitude(){return level;}
-        @JavascriptInterface public void toggle(){runOnUiThread(()->{
-            if(reader!=null){stopMic();return;}
-            if(!resumed || pending)return;
-            if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)startMic();
-            else {pending=true;requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},1);}
-        });}
     }
-    void status(String label){web.evaluateJavascript("micState('"+label+"')",null);}
-    void startMic(){
-        if(reader!=null)return;
-        reader=new Thread(()->{
-            AudioRecord rec=null;
-            Thread self=Thread.currentThread();
+    void stopNativeMic(){nativeMic=null;nativeLevel=0;nativeClipToken=0;}
+    void nativeMicState(boolean active){web.evaluateJavascript("micInput.nativeState("+active+")",null);}
+    void startNativeMic(){
+        if(nativeMic!=null)return;
+        if(!resumed||checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){nativeMicState(false);return;}
+        nativeMic=new Thread(()->{
+            AudioRecord input=null;Thread self=Thread.currentThread();
             try{
-                int size=AudioRecord.getMinBufferSize(16000,16,2);
-                rec=new AudioRecord(MediaRecorder.AudioSource.MIC,16000,16,2,Math.max(4096,size));
-                rec.startRecording();
-                runOnUiThread(()->{if(reader==self)status("Mic on");});
-                short[] samples=new short[512];
-                while(reader==self){
-                    int n=rec.read(samples,0,samples.length);
-                    if(n<=0)throw new IllegalStateException();
-                    double sum=0;
-                    for(int i=0;i<n;i++)sum+=(double)samples[i]*samples[i];
-                    if(reader==self)level=Math.min(1,Math.sqrt(sum/n)/3500);
+                int size=AudioRecord.getMinBufferSize(16000,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);
+                input=new AudioRecord(MediaRecorder.AudioSource.MIC,16000,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT,Math.max(4096,size));
+                input.startRecording();runOnUiThread(()->{if(nativeMic==self)nativeMicState(true);});
+                short[] samples=new short[512];byte[] packet=new byte[8192];int used=0,previous=0;
+                while(nativeMic==self){
+                    int count=input.read(samples,0,samples.length);if(count<=0)throw new IllegalStateException();
+                    double sum=0;for(int i=0;i<count;i++)sum+=(double)samples[i]*samples[i];
+                    if(nativeMic!=self)break;
+                    nativeLevel=Math.min(1,Math.sqrt(sum/count)/3500);
+                    int token=nativeClipToken;if(token!=previous){used=0;previous=token;}
+                    if(token==0)continue;
+                    if(used+count*2>packet.length)used=0;
+                    for(int i=0;i<count;i++){packet[used++]=(byte)samples[i];packet[used++]=(byte)(samples[i]>>8);}
+                    if(used>=2048&&nativeDispatch.compareAndSet(false,true)){
+                        String data=android.util.Base64.encodeToString(packet,0,used,android.util.Base64.NO_WRAP);used=0;
+                        runOnUiThread(()->{
+                            if(nativeMic==self&&nativeClipToken==token)web.evaluateJavascript("clipMicPcm("+token+",'"+data+"',16000,1)",v->nativeDispatch.set(false));
+                            else nativeDispatch.set(false);
+                        });
+                    }
                 }
-            }catch(RuntimeException e){runOnUiThread(()->{if(reader==self){reader=null;level=0;status("Mic unavailable");}});}
-            finally{if(rec!=null)rec.release();}
-        });
-        reader.start();
+            }catch(RuntimeException e){runOnUiThread(()->{if(nativeMic==self){stopNativeMic();nativeMicState(false);}});}
+            finally{if(input!=null)input.release();}
+        },"Loom microphone");
+        nativeMic.start();
     }
-    void stopMic(){reader=null;level=0;status("Mic off");}
     public void onRequestPermissionsResult(int r,String[] p,int[] g){
         super.onRequestPermissionsResult(r,p,g);
-        if(r==CAMERA_PERMISSION&&pendingCamera!=null){
-            PermissionRequest request=pendingCamera;pendingCamera=null;
+        if(r==pendingCaptureCode&&pendingCapture!=null){
+            PermissionRequest request=pendingCapture;pendingCapture=null;
             if(g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)
-                request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                request.grant(request.getResources());
             else request.deny();
         }
-        if(r==1){pending=false;if(g.length>0 && g[0]==0){if(resumed)startMic();else startAfterResume=true;}else {status("Mic off");notice("Microphone permission is required for live input");}}
     }
-    protected void onDestroy(){if(pendingCamera!=null){pendingCamera.deny();pendingCamera=null;}controller.close();google.close();super.onDestroy();}
-    protected void onResume(){super.onResume();resumed=true;web.onResume();web.evaluateJavascript("if(typeof setVideoBackgrounded==='function')setVideoBackgrounded(false)",null);clips.prompt();if(startAfterResume){startAfterResume=false;startMic();}}
-    protected void onPause(){resumed=false;web.evaluateJavascript("if(typeof cameraStream!=='undefined'&&cameraStream)stopCameraCapture();if(typeof setVideoBackgrounded==='function')setVideoBackgrounded(true);if(typeof stopClip==='function'){if(clipArmed)disarmClip();stopClip();}",null);stopMic();web.onPause();super.onPause();}
+    protected void onDestroy(){stopNativeMic();if(pendingCapture!=null){pendingCapture.deny();pendingCapture=null;}controller.close();google.close();super.onDestroy();}
+    protected void onResume(){super.onResume();resumed=true;web.onResume();web.evaluateJavascript("if(typeof setVideoBackgrounded==='function')setVideoBackgrounded(false)",null);clips.prompt();}
+    protected void onPause(){resumed=false;web.evaluateJavascript("if(typeof cameraStream!=='undefined'&&cameraStream)stopCameraCapture();if(typeof setVideoBackgrounded==='function')setVideoBackgrounded(true);if(typeof stopClip==='function'){if(clipArmed)disarmClip();stopClip();}if(typeof micInput!=='undefined'&&micInput.active())micInput.stop();",null);web.onPause();super.onPause();}
 }
 
 

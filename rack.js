@@ -46,19 +46,19 @@ function installRack(host){
  slider('spaceScale','Space scale',0,100,1,55,'%');
  const space=createSpatialFX();
  function noise(id){let n=Math.imul(id^seed,0x45d9f3b);n=Math.imul(n^(n>>>16),0x45d9f3b);return ((n^(n>>>16))>>>0)/4294967296;}
- function grains(ctx,images,w,h){
-   const n=state.count,columns=Math.ceil(Math.sqrt(n*w/h)),rows=Math.ceil(n/columns);
-   ctx.save();ctx.globalAlpha=state.opacity/100;
+ function grains(ctx,images,w,h,profile){
+   const n=profile.count,columns=Math.ceil(Math.sqrt(n*w/h)),rows=Math.ceil(n/columns);
+   ctx.save();ctx.globalAlpha=profile.opacity/100;
    for(let i=0;i<n;i++){
      const k=i*11+1,img=images[Math.floor(noise(k)*images.length)],iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
-     const sw=Math.max(1,iw*state.size/100),sh=Math.max(1,ih*state.size/100);
-     let dw=w*state.size/100,dh=h*state.size/100,x=noise(k+1)*(w-dw),y=noise(k+2)*(h-dh);
+     const sw=Math.max(1,iw*profile.size/100),sh=Math.max(1,ih*profile.size/100);
+     let dw=w*profile.size/100,dh=h*profile.size/100,x=noise(k+1)*(w-dw),y=noise(k+2)*(h-dh);
      if(state.layout==='Tile shuffle'){dw=w/columns;dh=h/rows;x=(i%columns)*dw;y=Math.floor(i/columns)*dh;}
-     if(state.layout==='Tape splices'){dw=w;dh=Math.max(1,h*state.size/400);x=0;y=noise(k+2)*(h-dh);}
+     if(state.layout==='Tape splices'){dw=w;dh=Math.max(1,h*profile.size/400);x=0;y=noise(k+2)*(h-dh);}
      const shape=grainShapes[state.layout];
      if(shape){
        ctx.save();
-       [x,y,dw,dh]=shape(ctx,k,time,state.drift/100,noise,w,h,dw,dh);
+       [x,y,dw,dh]=shape(ctx,k,time,profile.drift/100,noise,w,h,dw,dh);
      }
      ctx.drawImage(img,noise(k+3)*(iw-sw),noise(k+4)*(ih-sh),sw,sh,x,y,dw+.5,dh+.5);
      if(shape)ctx.restore();
@@ -68,10 +68,9 @@ function installRack(host){
  const buffer=document.createElement('canvas'),pixels=buffer.getContext('2d',{willReadFrequently:true});
  const history=document.createElement('canvas'),memory=history.getContext('2d');
  const lut=new Uint8ClampedArray(256*3);
- function colorize(v){
-   const depth=state.color/100;
+ function colorize(v,depth,hue){
    for(let i=0;i<256;i++){
-     const phase=i/255*state.bands+time*.35;
+     const phase=i/255*state.bands+time*.35+hue;
      for(let c=0;c<3;c++){
        let tone=extraTone(state.psy,i,c,phase,time);
        if(state.psy==='Acid solarize')tone=Math.abs(((phase*255+c*73)%510)-255);
@@ -89,18 +88,26 @@ function installRack(host){
  }
  function process(ctx,images,delta,motion={speed:1,level:0,pulse:0}){
    const w=ctx.canvas.width,h=ctx.canvas.height;
+   const {bass=0,mid=0,high=0,onset=false}=motion.dynamic||{};
    if(state.layout!=='Off'){
      beat+=delta*(motion.grainSpeed??motion.speed)*state.grainRate;if(beat>=1){seed+=Math.floor(beat);beat%=1;}
-     grains(ctx,images,w,h);
+     if(state.grainRate&&onset)seed+=1+Math.floor(high*6);
+     const profile=motion.dynamic?{
+       count:Math.min(64,Math.max(1,Math.round(state.count*(1+high*.76+motion.pulse*.35)))),
+       opacity:Math.min(100,state.opacity*(1+mid*.45+motion.pulse*.28)),
+       size:Math.min(80,Math.max(2,state.size*(1+bass*.44-high*.48))),
+       drift:Math.min(100,state.drift*(1+mid*.4+high*.38))
+     }:state;
+     grains(ctx,images,w,h,profile);
    }
    if(state.psy!=='Clean'||state.era!=='Clean'){
-     const scale=Math.min(1,400/Math.max(w,h),state.era==='Clean'?1:1/state.pitch);
+     const scale=Math.min(1,400/Math.max(w,h),state.era==='Clean'?1:1/(state.pitch*(1+high*.55)));
      const bw=Math.max(1,Math.round(w*scale)),bh=Math.max(1,Math.round(h*scale));
      if(buffer.width!==bw||buffer.height!==bh){buffer.width=bw;buffer.height=bh;}
      pixels.drawImage(ctx.canvas,0,0,bw,bh);
      const frame=pixels.getImageData(0,0,bw,bh),v=frame.data;
-     if(state.psy!=='Clean')colorize(v);
-     const amount=state.damage/100;
+     if(state.psy!=='Clean')colorize(v,Math.min(1,state.color/100*(1+.65*mid+.4*bass)),mid*.72+(onset ? .08 : 0));
+     const amount=Math.min(1,state.damage/100*(1+high*.75+(motion.dynamic?motion.pulse*.52:0)));
      if(newSignalModes.has(state.era)&&amount>0)extraSignal(state.era,v,bw,bh,amount,time,noise);
      else if(state.era!=='Clean'&&amount>0){
        const grainPhase=Math.floor(time*8),steps=Math.max(2,Math.round(64-60*amount));
@@ -122,8 +129,9 @@ function installRack(host){
    if(state.trail){
      if(history.width!==w||history.height!==h){history.width=w;history.height=h;historyValid=false;}
      if(historyValid){
-       ctx.save();ctx.globalAlpha=Math.pow(state.trail/100,Math.max(.01,delta*30));ctx.translate(w/2,h/2);
-       const rate=Math.min(3,motion.speed),zoom=state.feedback==='Inward spiral'?1-.018*rate:1+.012*rate;
+       const retention=Math.min(.95,state.trail/100*(1+mid*.3+bass*.18));
+       ctx.save();ctx.globalAlpha=Math.pow(retention,Math.max(.01,delta*30));ctx.translate(w/2,h/2);
+       const rate=Math.min(motion.dynamic?5:3,motion.speed+bass*1.2),zoom=state.feedback==='Inward spiral'?1-.018*rate:1+.012*rate;
        if(state.feedback==='Mirror trail')ctx.scale(-1,1);
        if(state.feedback==='Vertical drift')ctx.translate(0,h*.022*rate*Math.sin(time*.9));
        ctx.rotate((state.feedback==='Inward spiral'?.021:.005)*Math.sin(time)*rate);

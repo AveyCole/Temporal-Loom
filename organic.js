@@ -13,6 +13,7 @@ varying vec2 uv;
 uniform sampler2D outgoing,incoming;
 uniform vec2 cropA,cropB,screen;
 uniform float progress,clock,seed,strength,level,pulse;
+uniform vec3 audioBands;
 uniform int style;
 vec2 hash(vec2 p){
  return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)))+seed)*43758.5453);
@@ -52,7 +53,7 @@ vec2 vortex(vec2 p,vec2 center,float angle,float radius){
 void main(){
  float p=progress,t=clock;
  float phase=sin(p*3.14159265),react=min(1.6,level*.9+pulse*.85);
- float intensity=strength*(phase+.16*react)*(1.+.45*react);
+ float intensity=strength*(phase+.16*react)*(1.+.45*react+.26*audioBands.x);
  vec2 norm=vec2(screen.x/screen.y,1.);
  vec2 x=(uv-.5)*norm;
  vec2 q=x*3.8;
@@ -150,6 +151,7 @@ void main(){
    field=detail*.45+(bed-.45)*.82+layers*.11;
 ${organicVariantShader}
  }
+ warp+=vec2(sin(x.y*7.-t*.42)*audioBands.y*.14,cos(x.x*18.+t*.73)*audioBands.z*.08);
  vec2 bend=warp/norm*intensity;
  vec2 drift=vec2(-flow.y,flow.x)/norm*intensity*.23;
  vec3 a=sampleA(uv+bend*(.6+p)+drift);
@@ -185,7 +187,7 @@ function createOrganicRenderer(){
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
  const pos=gl.getAttribLocation(program,'vertex');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
- const names=['outgoing','incoming','cropA','cropB','screen','progress','clock','seed','strength','level','pulse','style'];
+ const names=['outgoing','incoming','cropA','cropB','screen','progress','clock','seed','strength','level','pulse','audioBands','style'];
  const u=Object.fromEntries(names.map(name=>[name,gl.getUniformLocation(program,name)]));
  const stages=[0,1].map(index=>{
    const texture=gl.createTexture();gl.activeTexture(gl.TEXTURE0+index);gl.bindTexture(gl.TEXTURE_2D,texture);
@@ -199,7 +201,7 @@ function createOrganicRenderer(){
    const width=image.videoWidth||image.naturalWidth||image.width,height=image.videoHeight||image.naturalHeight||image.height;
    if(!width||!height)return null;
    if(slot.source!==image || mutable || (video&&slot.frame!==image.currentTime)){
-     const ratio=Math.min(1,1440/Math.max(width,height));
+     const ratio=Math.min(1,(clipResolution?1920:1440)/Math.max(width,height));
      let pixels=image;
      if(ratio<1){
        slot.buffer.width=Math.max(1,Math.round(width*ratio));slot.buffer.height=Math.max(1,Math.round(height*ratio));
@@ -215,7 +217,7 @@ function createOrganicRenderer(){
    if(gl.isContextLost())return false;
    const a=upload(0,first),b=upload(1,second);
    if(!a||!b)return false;
-   const w=canvas.width,h=canvas.height,aspect=w/h,ratio=Math.min(1,1000/Math.max(w,h));
+   const w=canvas.width,h=canvas.height,aspect=w/h,ratio=Math.min(1,(clipResolution?1920:1000)/Math.max(w,h));
    const width=Math.max(1,Math.round(w*ratio)),height=Math.max(1,Math.round(h*ratio));
    if(surface.width!==width||surface.height!==height){surface.width=width;surface.height=height;gl.viewport(0,0,width,height);}
    gl.uniform2f(u.cropA,Math.min(1,aspect/a),Math.min(1,a/aspect));
@@ -223,6 +225,8 @@ function createOrganicRenderer(){
    gl.uniform2f(u.screen,width,height);
    gl.uniform1f(u.progress,p);gl.uniform1f(u.clock,time);gl.uniform1f(u.seed,key);
    gl.uniform1f(u.strength,Number($('warp').value));gl.uniform1f(u.level,motion.level||0);gl.uniform1f(u.pulse,motion.pulse||0);
+   const bands=motion.dynamic;
+   gl.uniform3f(u.audioBands,bands?.bass||0,bands?.mid||0,bands?.high||0);
    gl.uniform1i(u.style,index);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
    ctx.drawImage(surface,0,0,w,h);
    return true;
@@ -248,7 +252,7 @@ function createOrganicFallback(){
    if(!x||!y)return false;
    if(out.canvas.width!==w||out.canvas.height!==h){out.canvas.width=w;out.canvas.height=h;}
    const output=out.createImageData(w,h),d=output.data;
-   const strength=Number($('warp').value)*(Math.sin(Math.PI*p)+.26*(motion.level+motion.pulse));
+   const strength=Number($('warp').value)*(Math.sin(Math.PI*p)+.26*(motion.level+motion.pulse)+(motion.dynamic?.bass||0)*.23);
    const s=seed*.022,v=t*.66,variant=[0,0,0];
    for(let j=0;j<h;j++)for(let i=0;i<w;i++){
      const u=i/Math.max(1,w-1),z=j/Math.max(1,h-1);

@@ -39,7 +39,8 @@ final class Mp4Export {
                 int w=from.getInteger(MediaFormat.KEY_WIDTH),h=from.getInteger(MediaFormat.KEY_HEIGHT);
                 to=MediaFormat.createVideoFormat("video/avc",(w+1)&~1,(h+1)&~1);
                 to.setInteger(MediaFormat.KEY_COLOR_FORMAT,MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-                to.setInteger(MediaFormat.KEY_FRAME_RATE,30);to.setInteger(MediaFormat.KEY_BIT_RATE,3500000);
+                to.setInteger(MediaFormat.KEY_FRAME_RATE,30);
+                to.setInteger(MediaFormat.KEY_BIT_RATE,(int)Math.min(42000000,Math.max(18000000,11L*w*h)));
                 to.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL,2);
             }else{
                 to=MediaFormat.createAudioFormat("audio/mp4a-latm",rate,channels);

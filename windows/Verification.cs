@@ -22,6 +22,21 @@ namespace TemporalLoom
                 {
                     await Until(core, "typeof scrambleInstrument==='function' && typeof loadFragment==='function'", 12);
                     log.WriteLine("Shared interface loaded");
+                    if (Array.IndexOf(args, "--mic-clip-only") >= 0)
+                    {
+                        await CheckRecordedMic(core, app, target);
+                        log.WriteLine("PASS");
+                        app.Close();
+                        return;
+                    }
+                    if (Array.IndexOf(args, "--audio-response-only") >= 0)
+                    {
+                        await CheckMaximumAudioResponse(core);
+                        log.WriteLine("Maximum audio response separated bass, mids and highs, detected attacks, settled after silence and preserved tempo sync. Native ASIO band processing passed with test samples.");
+                        log.WriteLine("PASS");
+                        app.Close();
+                        return;
+                    }
                     if (Array.IndexOf(args, "--camera-only") >= 0)
                     {
                         await CheckCamera(core);
@@ -135,6 +150,96 @@ namespace TemporalLoom
                 if (!passed) log.WriteLine(await core.ExecuteScriptAsync("JSON.stringify({status:$('status').textContent,clip:$('clipStatus').textContent,sources:assets.map(x=>x.source)})"));
                 app.Close();
             }
+        }
+        private static async Task CheckRecordedMic(CoreWebView2 core, LoomWindow app, string target)
+        {
+            app.SetTestClip(Path.Combine(target, "mic-and-soundtrack.mp4"));
+            await core.ExecuteScriptAsync(@"
+                (async()=>{
+                    const context=new AudioContext(),mix=context.createMediaStreamDestination(),mic=context.createMediaStreamDestination();
+                    await context.resume();
+                    for(const [hz,output] of [[440,mix],[1200,mic]]){
+                        const tone=context.createOscillator(),gain=context.createGain();gain.gain.value=.13;tone.frequency.value=hz;
+                        tone.connect(gain);gain.connect(output);tone.start();
+                    }
+                    window.qaMicContext=context;Mic.recordingStream=()=>mic.stream;
+                    micState('Mic on');assignAudioMedia(null,mix.stream);await ensureAudio();await fileAudio.play();
+                    $('recTrigger').value='immediate';$('recordClip').click();
+                })();
+            ");
+            await Until(core, "clipRecorder?.state==='recording' && clipMicSource && $('clipStatus').textContent.includes('Mic included')", 10);
+            await Task.Delay(1500);
+            await core.ExecuteScriptAsync("$('recordClip').click()");
+            await Until(core, "$('clipStatus').textContent==='Clip saved.' && !clipMicSource && !clipMicToken", 30);
+            await core.ExecuteScriptAsync("assignAudioMedia(null);qaMicContext.close()");
+        }
+        private static async Task CheckMaximumAudioResponse(CoreWebView2 core)
+        {
+            const int length = 2048;
+            var buffer = Marshal.AllocHGlobal(length * sizeof(float));
+            try
+            {
+                var samples = new float[length];
+                var tones = new[] { 70, 950, 6200 };
+                for (int index = 0; index < tones.Length; index++)
+                {
+                    for (int i = 0; i < length; i++) samples[i] = (float)(.07 * Math.Sin(2 * Math.PI * tones[index] * i / 48000));
+                    Marshal.Copy(samples, 0, buffer, length);
+                    var meter = new AsioInput.BandMeter(48000);
+                    AsioInput.BufferLevel(buffer, length, NAudio.Wave.Asio.AsioSampleType.Float32LSB, meter);
+                    var bands = new[] { meter.Bass, meter.Mid, meter.High };
+                    for (int other = 0; other < bands.Length; other++)
+                        if (other != index && bands[index] <= bands[other] * 1.4) throw new Exception("Native bands did not separate test tones.");
+                }
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+            await core.ExecuteScriptAsync(@"
+                (async()=>{
+                    const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+                    const verify=(result,message)=>{if(!result)throw Error(message);};
+                    const producer=new AudioContext();await producer.resume();
+                    const sink=producer.createMediaStreamDestination(),tone=producer.createOscillator(),volume=producer.createGain();
+                    volume.gain.value=.075;tone.frequency.value=70;tone.connect(volume);volume.connect(sink);tone.start();
+                    try{
+                        $('defaultFx').click();$('audioResponse').value='maximum';$('audioResponse').dispatchEvent(new Event('change'));
+                        $('driver').value='audio';$('driver').onchange();
+                        assignAudioMedia(null,sink.stream);await ensureAudio();await fileAudio.play();
+                        restoreTempo({enabled:true,bpm:20,division:'1/4'});
+                        const start=a;
+                        await delay(195);
+                        const low=fileSpectrum(analyser,audioContext.sampleRate);
+                        verify(low.bass>low.mid*2&&low.bass>low.high*2,'Bass did not dominate');
+                        tone.frequency.value=920;await delay(195);
+                        const mid=fileSpectrum(analyser,audioContext.sampleRate);
+                        verify(mid.mid>mid.bass*2&&mid.mid>mid.high*2,'Mids did not dominate');
+                        tone.frequency.value=6200;await delay(195);
+                        const high=fileSpectrum(analyser,audioContext.sampleRate);
+                        verify(high.high>high.mid*2&&high.high>high.bass*2,'Highs did not dominate');
+                        verify(a===start&&tempoSettings.enabled,'Audio displaced the tempo clock');
+                        const response=makeMaximumMotion();
+                        const silence={input:0,bass:0,mid:0,high:0};response('fixture',silence,.6,.016);
+                        const strong=response('fixture',{input:.55,bass:.75,mid:.11,high:.08,peak:.7},.6,.016);
+                        verify(strong.dynamic.onset&&strong.pulse>.3,'Strong attack was missed');
+                        const second=response('fixture',{input:.7,bass:.81,mid:.3,high:.97},.6,.016);
+                        verify(!second.dynamic.onset&&second.grainSpeed>strong.grainSpeed,'Highs did not increase grain motion or attack was duplicated');
+                        let release=second;
+                        for(let i=0;i<110;i++)release=response('fixture',silence,.6,.016);
+                        verify(release.speed<.01&&release.pulse<.01,'Motion did not release into silence');
+                        frozen=true;
+                        const texture=demo(0),render=motion=>{
+                          ctx.drawImage(texture,0,0,canvas.width,canvas.height);drawMaximumResponse(ctx,motion,2.1);return canvas.toDataURL();
+                        };
+                        verify(render(strong)!==render(second)&&render(strong)!==render(release),'Camera geometry did not change');
+                        $('defaultFx').click();verify(audioResponse==='standard'&&analyser.fftSize===1024,'Default did not restore Standard');
+                        window.qaMaximum=true;
+                    }finally{
+                        frozen=false;restoreTempo();assignAudioMedia(null);tone.stop();await producer.close();
+                    }
+                })().catch(error=>window.qaMaximum=error.message);
+            ");
+            await Until(core, "typeof window.qaMaximum!=='undefined'", 14);
+            string outcome = await core.ExecuteScriptAsync("window.qaMaximum");
+            if (outcome != "true") throw new Exception(outcome);
         }
         private static async Task CheckCamera(CoreWebView2 core)
         {

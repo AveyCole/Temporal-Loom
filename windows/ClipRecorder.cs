@@ -120,10 +120,12 @@ namespace TemporalLoom
 
         private static void ConvertToMp4(string source, string destination)
         {
+            bool avc = string.Equals(Path.GetExtension(source), ".mp4", StringComparison.OrdinalIgnoreCase);
+            string video = avc ? "-c:v copy" : "-vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -c:v libx264 -preset fast -crf 16 -pix_fmt yuv420p";
             string ffmpeg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
             using (var process = Process.Start(new ProcessStartInfo(ffmpeg,
                 "-hide_banner -loglevel error -nostdin -i \"" + source +
-                "\" -map 0:v:0 -map 0:a? -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart -y \"" +
+                "\" -map 0:v:0 -map 0:a? " + video + " -c:a aac -b:a 192k -movflags +faststart -y \"" +
                 destination + "\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true }))
             {
                 string errors = process.StandardError.ReadToEnd();

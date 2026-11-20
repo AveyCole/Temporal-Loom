@@ -1,0 +1,22 @@
+body{background:#0b1110}header,.mode-tabs,main{max-width:1450px;margin-inline:auto}
+header{padding-inline:24px}.mode-tabs{padding-inline:24px}
+main,.viewfinding main{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,310px);gap:18px;padding:18px 24px 24px;align-items:start;min-height:0}
+.workspace,.viewfinding .workspace{grid-column:1;grid-row:1;min-width:0;max-width:none;width:100%;padding:0;margin:0}
+main>aside,.viewfinding main>aside{display:block;grid-column:2;grid-row:1;min-width:0;border:1px solid var(--line);background:#121d19;border-radius:12px;padding:12px;overflow:visible}
+.studio-tabs{display:flex;gap:4px;margin-bottom:10px}.studio-tabs button{flex:1;min-width:0;padding-inline:6px;font-size:13px}.studio-tabs button[aria-pressed=true]{background:var(--acid);color:#172219;border-color:var(--acid)}
+.studio-controls[hidden],.viewfinding .studio-source-options,.type-open main>aside{display:none}
+.studio-controls>.rule:first-child,.studio-controls>.look-buttons:first-child{margin-top:0;padding-top:0;border-top:0}
+.studio-controls .find-controls{margin:6px 0 0}.studio-controls .tempo-settings{margin:8px 0}
+.studio-controls .control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.studio-controls .file-label{display:block}
+.file-transport{margin:9px 0 2px}.file-transport #micButton{width:auto;margin:0}
+.workspace .performance{margin-bottom:8px}.workspace .performance h2{font-size:19px}.workspace .performance .eyebrow{display:none}
+.stage-wrap:not(.expanded){aspect-ratio:16/9;border-radius:14px}
+.studio-deck{grid-column:1/-1;min-width:0;margin:0;padding-top:10px;border-top:1px solid var(--line)}
+.stage-fullscreen .studio-deck{visibility:hidden}
+.type-open main{display:block}.type-open .studio-deck{margin-top:12px}
+@media(max-width:780px){
+ main,.viewfinding main{display:flex;flex-direction:column;padding:12px 14px 18px;gap:12px}
+ header,.mode-tabs{padding-inline:14px}.workspace,main>aside,.studio-deck{width:100%}
+ main>aside{order:1}.studio-deck{order:2}.stage-wrap:not(.expanded){aspect-ratio:4/3;min-height:210px}
+}
